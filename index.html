@@ -1,0 +1,2706 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RP Studio Max — Личный кабинет для ролевых</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Переменные цветовой схемы и типографики */
+    :root {
+      --bg-base: #0b0e14;
+      --bg-panel: #111622;
+      --bg-card: #182030;
+      --bg-border: #222d42;
+      --accent-color: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --accent-glow: rgba(139, 92, 246, 0.25);
+      --font-family-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --chat-font-size: 14.5px;
+      --chat-line-height: 1.65;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      font-family: var(--font-family-body);
+      color: #e2e8f0;
+    }
+
+    .theme-bg-base { background-color: var(--bg-base); }
+    .theme-bg-panel { background-color: var(--bg-panel); }
+    .theme-bg-card { background-color: var(--bg-card); }
+    .theme-border { border-color: var(--bg-border); }
+    
+    .theme-accent { color: var(--accent-color); }
+    .theme-accent-bg { background-color: var(--accent-color); }
+    .theme-accent-bg:hover { background-color: var(--accent-hover); }
+    .theme-accent-border { border-color: var(--accent-color); }
+    .theme-accent-shadow { box-shadow: 0 4px 18px var(--accent-glow); }
+
+    /* Настройки шрифта в блоках чтения */
+    .story-prose {
+      font-size: var(--chat-font-size);
+      line-height: var(--chat-line-height);
+    }
+    .story-prose p { margin-bottom: 0.85em; }
+    .story-prose p:last-child { margin-bottom: 0; }
+
+    /* Кастомный тонкий скроллбар */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b4d71; }
+
+    /* Анимации и плавность */
+    .transition-drawer { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
+
+    /* Дзен режим (фокус на тексте) */
+    body.zen-mode #app-header,
+    body.zen-mode #left-sidebar,
+    body.zen-mode #right-sidebar,
+    body.zen-mode #scratchpad-drawer,
+    body.zen-mode #scene-bar {
+      display: none !important;
+    }
+    body.zen-mode #main-content {
+      max-width: 860px;
+      margin: 0 auto;
+      border: none;
+    }
+    #zen-exit-btn { display: none; }
+    body.zen-mode #zen-exit-btn { display: flex; }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- ==================== ШАПКА ПРИЛОЖЕНИЯ ==================== -->
+  <header id="app-header" class="h-14 theme-border border-b theme-bg-panel/90 backdrop-blur px-3 sm:px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Кнопка NPC / Lorebook -->
+      <button id="toggle-left-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition" title="Персонажи и NPC (Lorebook)">
+        <i data-lucide="users" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg theme-accent-bg flex items-center justify-center theme-accent-shadow">
+          <i data-lucide="feather" class="w-4 h-4 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
+            RP Studio <span class="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase theme-bg-card theme-border border theme-accent">Max</span>
+          </h1>
+          <p class="text-[10px] text-slate-400 hidden sm:block">Кабинет литературной ролевой игры</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Центр / Информация о сцене -->
+    <div class="hidden lg:flex items-center gap-3 text-xs text-slate-400">
+      <span id="quick-world-badge" class="px-2.5 py-1 rounded-md theme-bg-card theme-border border text-slate-300 hover:text-white cursor-pointer transition flex items-center gap-1.5" title="Кликните для настройки Лора мира">
+        <i data-lucide="globe-2" class="w-3.5 h-3.5 text-violet-400"></i>
+        <span id="header-fandom-title" class="font-medium truncate max-w-[170px]">Сеттинг: Не задан</span>
+      </span>
+      <span id="quick-scene-info" class="truncate max-w-[150px] cursor-pointer hover:text-slate-200" title="Нажмите, чтобы настроить сцену">
+        📍 Локация не задана
+      </span>
+      <span class="w-1 h-1 rounded-full bg-slate-600"></span>
+      <span id="active-npcs-pill" class="theme-accent flex items-center gap-1 font-medium">
+        <span class="w-2 h-2 rounded-full theme-accent-bg animate-pulse"></span>
+        <span id="active-npcs-count">В кадре: 0 NPC</span>
+      </span>
+    </div>
+
+    <!-- Действия и тулбар -->
+    <div class="flex items-center gap-1 sm:gap-1.5">
+      <!-- Кнопка "Лор и Мир" (World Lore Vault) -->
+      <button id="toggle-lore-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition text-xs flex items-center gap-1.5" title="Лор мира, сеттинг, цели и правила игры">
+        <i data-lucide="globe-2" class="w-4 h-4 text-violet-400"></i>
+        <span class="hidden md:inline font-medium">Лор Мира</span>
+        <span id="lore-status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+      </button>
+
+      <!-- Кнопка "Стиль и Длина" -->
+      <button id="toggle-style-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition text-xs flex items-center gap-1.5" title="Калибровка темпа, длины постов и эталон стиля">
+        <i data-lucide="pen-tool" class="w-4 h-4 text-cyan-400"></i>
+        <span class="hidden md:inline">Стиль & Длина</span>
+      </button>
+
+      <!-- Кнопка "Сцена и Инвентарь" -->
+      <button id="toggle-scene-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition text-xs flex items-center gap-1.5" title="Локация, погода и инвентарь в кадре">
+        <i data-lucide="map-pin" class="w-4 h-4 text-amber-400"></i>
+        <span class="hidden md:inline">Сцена</span>
+      </button>
+
+      <!-- Кнопка "Плавающий блокнот" -->
+      <button id="toggle-scratchpad-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition text-xs flex items-center gap-1.5" title="Заметки сюжета и черновик">
+        <i data-lucide="sticky-note" class="w-4 h-4 text-emerald-400"></i>
+        <span class="hidden md:inline">Блокнот</span>
+      </button>
+
+      <!-- Кнопка "Оформление и темы" -->
+      <button id="open-theme-modal-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition" title="Темы, цвета и шрифты">
+        <i data-lucide="palette" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Кнопка "Режим Дзен" -->
+      <button id="zen-enter-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition" title="Режим Дзен (Скрыть интерфейс)">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Разделитель -->
+      <div class="h-5 w-px theme-border border-r mx-1"></div>
+
+      <!-- Кнопка параметров ИИ -->
+      <button id="toggle-right-btn" class="p-2 rounded-lg hover:bg-white/5 text-slate-300 hover:text-white transition relative" title="Настройки API и правил Мастера">
+        <i data-lucide="sliders" class="w-5 h-5"></i>
+        <span id="api-status-dot" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== ПЛАВАЮЩАЯ КНОПКА ВЫХОДА ИЗ ДЗЕН-РЕЖИМА ==================== -->
+  <button id="zen-exit-btn" class="fixed top-4 right-4 z-50 theme-bg-card theme-border border px-3 py-1.5 rounded-full text-xs text-slate-200 hover:text-white theme-accent-shadow items-center gap-1.5 shadow-xl transition backdrop-blur-md">
+    <i data-lucide="minimize-2" class="w-3.5 h-3.5"></i> Выйти из Дзен
+  </button>
+
+  <!-- ==================== ОСНОВНАЯ РАБОЧАЯ ЗОНА ==================== -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- ========== ЛЕВАЯ ПАНЕЛЬ: СПРАВОЧНИК / LOREBOOK & NPC ========== -->
+    <aside id="left-sidebar" class="w-80 theme-border border-r theme-bg-panel flex flex-col shrink-0 z-20 transition-drawer absolute md:relative inset-y-0 left-0 md:translate-x-0 -translate-x-full shadow-2xl md:shadow-none">
+      <div class="p-3.5 theme-border border-b flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-marked" class="w-4 h-4 theme-accent"></i>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">База NPC (Lorebook)</span>
+        </div>
+        <button id="add-npc-btn" class="px-2.5 py-1 theme-accent-bg text-white rounded-lg text-xs flex items-center gap-1 transition shadow">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Создать NPC
+        </button>
+      </div>
+
+      <div class="p-2.5 theme-bg-card text-[11px] text-slate-400 theme-border border-b flex items-center justify-between">
+        <span>Тумблер определяет, кто сейчас в кадре:</span>
+      </div>
+
+      <!-- Карточка-сводка Лора Мира в сайдбаре -->
+      <div class="p-3 theme-border border-b theme-bg-card/40 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold text-violet-300 flex items-center gap-1.5">
+            <i data-lucide="globe-2" class="w-3.5 h-3.5 text-violet-400"></i> Сеттинг & Лор
+          </span>
+          <button id="sidebar-open-lore-btn" class="text-[10px] theme-accent hover:underline flex items-center gap-0.5">
+            Настроить ↗
+          </button>
+        </div>
+        <div class="text-[11px] text-slate-300 flex items-center justify-between">
+          <span class="truncate max-w-[190px]"><strong class="text-slate-400">Вселенная:</strong> <span id="sidebar-lore-fandom" class="text-white">Не задана</span></span>
+          <span id="sidebar-lore-badge" class="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">АКТИВЕН</span>
+        </div>
+        <p id="sidebar-lore-preview" class="text-[10px] text-slate-400 line-clamp-2 italic">Лор мира пуст. Добавьте канон фандома и сюжетную завязку, чтобы ИИ органично следовал им.</p>
+      </div>
+
+      <!-- Список карточек NPC -->
+      <div id="npc-list" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+        <!-- Генерируется из JS -->
+      </div>
+
+      <!-- Кнопки управления данными -->
+      <div class="p-3 theme-border border-t theme-bg-panel/90 flex gap-2">
+        <button id="backup-save-btn" class="flex-1 py-1.5 text-xs theme-bg-card hover:bg-white/5 theme-border border rounded-lg text-slate-300 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Бэкап JSON
+        </button>
+        <label class="flex-1 py-1.5 text-xs theme-bg-card hover:bg-white/5 theme-border border rounded-lg text-slate-300 flex items-center justify-center gap-1.5 cursor-pointer transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i> Импорт
+          <input type="file" id="backup-load-input" accept=".json" class="hidden">
+        </label>
+      </div>
+    </aside>
+
+    <!-- Мобильная подложка -->
+    <div id="mobile-backdrop" class="fixed inset-0 bg-black/60 z-10 hidden md:hidden backdrop-blur-xs"></div>
+
+    <!-- ========== ЦЕНТРАЛЬНОЕ ОКНО: СЦЕНА, ЧАТ И КОМПОЗИТОР ========== -->
+    <main id="main-content" class="flex-1 flex flex-col theme-bg-base overflow-hidden relative">
+
+      <!-- ПАНЕЛЬ СЦЕНЫ И ИНВЕНТАРЯ (Сворачиваемая) -->
+      <div id="scene-bar" class="theme-border border-b theme-bg-panel/80 px-4 py-2.5 shrink-0 transition-all">
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2 flex-1">
+            <!-- Локация -->
+            <div class="flex items-center gap-1.5 theme-bg-card px-2.5 py-1.5 rounded-lg theme-border border">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+              <input type="text" id="scene-location-input" placeholder="Локация (напр. Чердак дома)" class="bg-transparent text-slate-200 text-xs focus:outline-none w-36 sm:w-44">
+            </div>
+
+            <!-- Время суток -->
+            <div class="flex items-center gap-1.5 theme-bg-card px-2.5 py-1.5 rounded-lg theme-border border">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-400 shrink-0"></i>
+              <input type="text" id="scene-time-input" placeholder="Время (напр. 02:30 ночи)" class="bg-transparent text-slate-200 text-xs focus:outline-none w-28 sm:w-32">
+            </div>
+
+            <!-- Погода и атмосфера -->
+            <div class="flex items-center gap-1.5 theme-bg-card px-2.5 py-1.5 rounded-lg theme-border border flex-1 min-w-[160px]">
+              <i data-lucide="cloud-rain" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+              <input type="text" id="scene-weather-input" placeholder="Погода (напр. Проливной дождь, холод)" class="bg-transparent text-slate-200 text-xs focus:outline-none w-full">
+            </div>
+          </div>
+
+          <!-- Кнопка раскрытия инвентаря -->
+          <button id="toggle-inventory-details-btn" class="px-2.5 py-1.5 rounded-lg theme-bg-card hover:bg-white/5 theme-border border text-slate-300 flex items-center gap-1.5 text-xs">
+            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span id="inventory-badge-count">Инвентарь (0)</span>
+          </button>
+        </div>
+
+        <!-- Выдвижной блок инвентаря сцены -->
+        <div id="inventory-dropdown" class="hidden mt-2.5 pt-2.5 theme-border border-t animate-fadeIn">
+          <div class="flex flex-wrap items-center gap-1.5 mb-2" id="inventory-tags-container">
+            <!-- Теги инвентаря -->
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="new-item-input" placeholder="Добавить предмет в кадре (напр: Ключи от мотоцикла, пачка сигарет)..." class="flex-1 theme-bg-card theme-border border rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-violet-500">
+            <button id="add-item-btn" class="px-3 py-1 theme-accent-bg text-white rounded-lg text-xs font-medium">Добавить</button>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">ИИ будет помнить физическое присутствие этих вещей и использовать их в действиях.</p>
+        </div>
+      </div>
+
+      <!-- ЛЕНТА СООБЩЕНИЙ -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 select-text">
+        <!-- Сообщения генерируются из JS -->
+      </div>
+
+      <!-- ИНДИКАТОР РАЗМЫШЛЕНИЙ ИИ -->
+      <div id="ai-loading" class="hidden px-6 py-2.5 theme-bg-panel/90 theme-border border-t flex items-center gap-3">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full theme-accent-bg animate-bounce"></span>
+          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.4s]"></span>
+        </div>
+        <span class="text-xs text-slate-300 font-medium">ИИ генерирует ответ мира и активных NPC...</span>
+      </div>
+
+      <!-- ========== БЛОК ВВОДА (КОМПОЗИТОР) ========== -->
+      <div class="theme-border border-t theme-bg-panel/95 backdrop-blur p-3 md:p-4 shrink-0">
+        
+        <!-- Верхняя строка: Режим (Игра / OOC), Имя персонажа и Директор -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2">
+            <!-- Тумблер IC / OOC -->
+            <div class="flex rounded-lg theme-bg-card p-0.5 theme-border border text-xs">
+              <button id="mode-ic-btn" class="px-3 py-1 rounded-md font-medium theme-accent-bg text-white shadow transition flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Ход в игре
+              </button>
+              <button id="mode-ooc-btn" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Мит-пауза (OOC)
+              </button>
+            </div>
+
+            <!-- Имя персонажа игрока -->
+            <div class="flex items-center gap-1.5 theme-bg-card px-2.5 py-1 rounded-lg theme-border border">
+              <i data-lucide="user" class="w-3.5 h-3.5 theme-accent"></i>
+              <input type="text" id="player-name-input" placeholder="Имя вашего персонажа" class="bg-transparent text-xs text-slate-200 font-medium focus:outline-none w-28 sm:w-36">
+            </div>
+          </div>
+
+          <!-- Кнопка вызова P.S. и бросок кубика -->
+          <div class="flex items-center gap-1.5">
+            <button id="roll-random-event-btn" class="text-xs px-2.5 py-1 rounded-lg theme-border border theme-bg-card hover:bg-white/5 text-slate-300 flex items-center gap-1.5 transition" title="Вбросить неожиданное событие прямо в кадр">
+              <i data-lucide="dices" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Случайность</span>
+            </button>
+
+            <button id="toggle-director-btn" class="text-xs px-2.5 py-1 rounded-lg theme-border border theme-bg-card hover:bg-white/5 text-slate-300 flex items-center gap-1.5 transition" title="Открыть скрытые режиссерские указания">
+              <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Режиссерский P.S.</span>
+              <span id="ps-active-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400 hidden"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Скрываемая панель Режиссерского P.S. с быстрыми чипами -->
+        <div id="director-box" class="hidden mb-2.5 p-2.5 rounded-xl bg-amber-950/20 border border-amber-800/40 animate-fadeIn space-y-2">
+          <div class="flex items-center justify-between text-xs text-amber-300 font-medium">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="sparkle" class="w-3.5 h-3.5"></i> Скрытое указание к следующему посту:
+            </span>
+            <button id="clear-ps-btn" class="text-[10px] text-amber-400/80 hover:text-amber-200">Очистить</button>
+          </div>
+          
+          <input type="text" id="director-input" placeholder="Например: Пусть NPC не поверит моим словам; сделай акцент на запахе кофе и шуме дождя..." class="w-full theme-bg-base border border-amber-900/50 rounded-lg px-2.5 py-1.5 text-xs text-amber-100 placeholder-amber-500/40 focus:outline-none focus:border-amber-500">
+
+          <!-- Чипы быстрых указаний -->
+          <div class="flex flex-wrap items-center gap-1 pt-1">
+            <span class="text-[10px] text-amber-400/70 mr-1">Быстрый P.S.:</span>
+            <button class="quick-ps-chip text-[10px] px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-800/60 transition" data-text="+Сделай упор на быт, запахи и физику пространства">+Быт и детали</button>
+            <button class="quick-ps-chip text-[10px] px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-800/60 transition" data-text="+Добавь острый спор, недоверие или конфликт">+Конфликт</button>
+            <button class="quick-ps-chip text-[10px] px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-800/60 transition" data-text="+Сделай ответ динамичным и напряженным">+Динамика</button>
+            <button class="quick-ps-chip text-[10px] px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-800/60 transition" data-text="+Добавь неловкую паузу и тяжелый взгляд">+Неловкая пауза</button>
+            <button class="quick-ps-chip text-[10px] px-2 py-0.5 rounded bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 border border-amber-800/60 transition" data-text="+Внезапно измени тему разговора">+Смена темы</button>
+          </div>
+        </div>
+
+        <!-- Текстовое поле ввода хода -->
+        <div class="relative">
+          <textarea id="message-input" rows="3" placeholder="Опишите действия, прямую речь или мысли вашего персонажа... (Ctrl + Enter для отправки)" class="w-full theme-bg-card theme-border border rounded-xl p-3 pr-24 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 resize-none transition leading-relaxed"></textarea>
+
+          <div class="absolute right-2.5 bottom-3 flex items-center gap-1.5">
+            <button id="send-btn" class="px-4 py-2 theme-accent-bg text-white font-medium rounded-lg text-xs flex items-center gap-1.5 theme-accent-shadow transition transform active:scale-95">
+              <span>Ход</span>
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Нижняя строка: счетчик слов, символов и времени чтения -->
+        <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1 px-1">
+          <div class="flex items-center gap-3">
+            <span id="char-counter">Знаков: 0</span>
+            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+            <span id="word-counter">Слов: 0</span>
+            <span class="w-1 h-1 rounded-full bg-slate-700"></span>
+            <span id="reading-time-counter">Чтение: 0 мин</span>
+          </div>
+          <div class="text-[10px] text-slate-500 hidden sm:block">
+            <span>Ctrl + Enter для отправки</span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- ========== ПЛАВАЮЩИЙ БЛОКНОТ (SCRATCHPAD) ========== -->
+    <aside id="scratchpad-drawer" class="w-80 sm:w-96 theme-border border-l theme-bg-panel flex flex-col shrink-0 z-20 transition-drawer absolute md:relative inset-y-0 right-0 md:translate-x-0 translate-x-full shadow-2xl md:shadow-none hidden">
+      <div class="p-3.5 theme-border border-b flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="file-edit" class="w-4 h-4 text-emerald-400"></i>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">Личный Блокнот (Scratchpad)</span>
+        </div>
+        <button id="close-scratchpad-btn" class="p-1 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-2.5 theme-bg-card text-[11px] text-slate-400 theme-border border-b">
+        Черновики, зацепки на будущее и скрытые планы сюжета. Сохраняются автоматически:
+      </div>
+
+      <div class="flex-1 p-3 flex flex-col">
+        <textarea id="scratchpad-input" placeholder="Записывайте сюда любые мысли, тайны персонажей, предстоящие сюжетные повороты..." class="flex-1 w-full theme-bg-card theme-border border rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"></textarea>
+      </div>
+    </aside>
+
+    <!-- ========== ПРАВАЯ ПАНЕЛЬ: НАСТРОЙКИ СЮЖЕТА И ИИ ========== -->
+    <aside id="right-sidebar" class="w-80 md:w-96 theme-border border-l theme-bg-panel flex flex-col shrink-0 z-20 transition-drawer absolute md:relative inset-y-0 right-0 md:translate-x-0 translate-x-full shadow-2xl md:shadow-none">
+      <div class="p-3.5 theme-border border-b flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 theme-accent"></i>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-200">Движок и Параметры</span>
+        </div>
+        <button id="close-right-btn" class="md:hidden p-1 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        
+        <!-- Gemini API Key -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i> Gemini API Ключ
+            </label>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] theme-accent hover:underline">Получить ключ ↗</a>
+          </div>
+          <div class="relative">
+            <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full theme-bg-card theme-border border rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-violet-500">
+            <button id="toggle-key-visibility" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500">Ключ надежно хранится только в вашем браузере (localStorage).</p>
+        </div>
+
+        <!-- Выбор модели -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="cpu" class="w-3.5 h-3.5 text-indigo-400"></i> Модель генерации
+          </label>
+          <select id="model-select" class="w-full theme-bg-card theme-border border rounded-lg px-2.5 py-2 text-slate-200 text-xs focus:outline-none focus:border-violet-500">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Молниеносный отклик, идеальный ритм)</option>
+            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Максимальная литературная глубина и детализация)</option>
+          </select>
+        </div>
+
+        <!-- Ползунки параметров генерации -->
+        <div class="space-y-3.5 theme-bg-card/70 p-3 rounded-xl theme-border border">
+          <!-- Температура -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-300 font-medium">Креативность (Температура):</span>
+              <span id="temp-val" class="font-mono theme-accent text-[11px]">0.9</span>
+            </div>
+            <input type="range" id="temp-range" min="0.2" max="1.4" step="0.05" value="0.9" class="w-full accent-violet-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+              <span>Строгая логика</span>
+              <span>Литературная свобода</span>
+            </div>
+          </div>
+
+          <!-- Глубина контекста -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-300 font-medium">Память контекста:</span>
+              <span id="context-val" class="font-mono theme-accent text-[11px]">20 постов</span>
+            </div>
+            <input type="range" id="context-range" min="4" max="40" step="2" value="20" class="w-full accent-violet-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Досье игрока -->
+        <div class="space-y-1.5">
+          <label class="font-medium text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-400"></i> Биография персонажа игрока
+          </label>
+          <textarea id="player-bio-input" rows="3" class="w-full theme-bg-card theme-border border rounded-lg p-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500" placeholder="Внешность, характер, статус и скрытые цели персонажа..."></textarea>
+        </div>
+
+        <!-- Системные законы ролевой (Снятие цензуры и табу) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="scroll" class="w-3.5 h-3.5 theme-accent"></i> Системный Кодекс Ролевой
+            </label>
+            <button id="reset-prompt-btn" class="text-[10px] text-slate-400 hover:text-white">Сброс к эталону</button>
+          </div>
+          <textarea id="system-prompt-input" rows="10" class="w-full theme-bg-card theme-border border rounded-lg p-2 text-[11px] font-mono text-slate-300 leading-relaxed focus:outline-none focus:border-violet-500"></textarea>
+          <p class="text-[10px] text-slate-500">Включает категорический запрет отыгрыша за игрока, анти-эхо и снятие цензурных рамок для взрослого сюжета.</p>
+        </div>
+
+        <!-- Кнопки управления чатом -->
+        <div class="pt-2 theme-border border-t flex flex-col gap-2">
+          <button id="export-md-btn" class="w-full py-2 theme-bg-card hover:bg-white/5 theme-border border rounded-lg text-slate-200 flex items-center justify-center gap-2 transition text-xs">
+            <i data-lucide="file-down" class="w-3.5 h-3.5 text-indigo-400"></i> Скачать сессию в Markdown
+          </button>
+          <button id="clear-chat-btn" class="w-full py-2 bg-rose-950/30 hover:bg-rose-900/40 border border-rose-900/50 rounded-lg text-rose-300 flex items-center justify-center gap-2 transition text-xs">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Очистить историю сообщений
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: ТЕМЫ, ЦВЕТА И ШРИФТЫ ==================== -->
+  <div id="theme-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
+      <div class="p-4 theme-border border-b flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+          <i data-lucide="palette" class="w-4 h-4 theme-accent"></i> Оформление и Атмосфера
+        </h3>
+        <button id="close-theme-modal-btn" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-5 text-xs max-h-[80vh] overflow-y-auto">
+        <!-- Готовые пресеты тем -->
+        <div>
+          <label class="block text-slate-300 font-medium mb-2">Готовые темы оформления:</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="preset-themes-grid">
+            <button data-theme="obsidian" class="theme-preset-btn p-2.5 rounded-xl border border-slate-700 bg-[#0b0e14] text-left hover:border-violet-500 transition">
+              <span class="block font-semibold text-slate-200">Obsidian Dark</span>
+              <span class="text-[10px] text-slate-400">Графит и фиолетовый</span>
+            </button>
+            <button data-theme="midnight" class="theme-preset-btn p-2.5 rounded-xl border border-slate-700 bg-[#060913] text-left hover:border-cyan-500 transition">
+              <span class="block font-semibold text-slate-200">Midnight Cyber</span>
+              <span class="text-[10px] text-cyan-400">Глубокий синий и бирюза</span>
+            </button>
+            <button data-theme="crimson" class="theme-preset-btn p-2.5 rounded-xl border border-slate-700 bg-[#12080a] text-left hover:border-rose-500 transition">
+              <span class="block font-semibold text-slate-200">Crimson Velvet</span>
+              <span class="text-[10px] text-rose-400">Бордо и алый бархат</span>
+            </button>
+            <button data-theme="sepia" class="theme-preset-btn p-2.5 rounded-xl border border-slate-700 bg-[#12100d] text-left hover:border-amber-500 transition">
+              <span class="block font-semibold text-slate-200">Vintage Sepia</span>
+              <span class="text-[10px] text-amber-400">Тёплый пергамент</span>
+            </button>
+            <button data-theme="oled" class="theme-preset-btn p-2.5 rounded-xl border border-slate-700 bg-[#000000] text-left hover:border-indigo-500 transition">
+              <span class="block font-semibold text-slate-200">Pure OLED</span>
+              <span class="text-[10px] text-slate-400">Абсолютный черный</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Пользовательские цвета (Color Pickers) -->
+        <div class="theme-bg-card p-3.5 rounded-xl theme-border border space-y-3">
+          <span class="block text-slate-300 font-medium">Свободная настройка палитры:</span>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 text-[11px] mb-1">Фон приложения:</label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="custom-bg-color" value="#0b0e14" class="w-8 h-8 rounded border border-slate-600 bg-transparent cursor-pointer">
+                <input type="text" id="custom-bg-hex" value="#0b0e14" class="w-24 theme-bg-base theme-border border rounded px-2 py-1 font-mono text-[11px] text-slate-200">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 text-[11px] mb-1">Цвет акцента:</label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="custom-accent-color" value="#8b5cf6" class="w-8 h-8 rounded border border-slate-600 bg-transparent cursor-pointer">
+                <input type="text" id="custom-accent-hex" value="#8b5cf6" class="w-24 theme-bg-base theme-border border rounded px-2 py-1 font-mono text-[11px] text-slate-200">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Типографика -->
+        <div class="theme-bg-card p-3.5 rounded-xl theme-border border space-y-3">
+          <span class="block text-slate-300 font-medium">Типографика для чтения:</span>
+
+          <div>
+            <label class="block text-slate-400 text-[11px] mb-1">Гарнитура текста:</label>
+            <select id="font-family-select" class="w-full theme-bg-base theme-border border rounded-lg px-2.5 py-1.5 text-slate-200 text-xs">
+              <option value="'Inter', system-ui, -apple-system, sans-serif">Современный гротеск (Inter / Modern Sans)</option>
+              <option value="'Georgia', 'Cambria', 'Merriweather', serif">Книжная антиква (Literary Serif / Роман)</option>
+              <option value="'JetBrains Mono', 'Fira Code', monospace">Моноширинный шрифт (Script Monospace)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <div class="flex justify-between text-slate-400 text-[11px] mb-1">
+                <span>Размер шрифта:</span>
+                <span id="font-size-val" class="font-mono text-slate-200">14.5px</span>
+              </div>
+              <input type="range" id="font-size-range" min="13" max="22" step="0.5" value="14.5" class="w-full accent-violet-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-400 text-[11px] mb-1">
+                <span>Интервал строк:</span>
+                <span id="line-height-val" class="font-mono text-slate-200">1.65</span>
+              </div>
+              <input type="range" id="line-height-range" min="1.4" max="2.0" step="0.05" value="1.65" class="w-full accent-violet-500 bg-slate-700 h-1.5 rounded-lg appearance-none cursor-pointer">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-3.5 theme-border border-t flex justify-end">
+        <button id="save-theme-modal-btn" class="px-4 py-1.5 theme-accent-bg text-white rounded-lg font-medium text-xs">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: КАЛИБРОВКА СТИЛЯ И ОБЪЕМА ==================== -->
+  <div id="style-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-fadeIn">
+      <div class="p-4 theme-border border-b flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-cyan-950/60 text-cyan-400 theme-border border">
+            <i data-lucide="pen-tool" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Калибровка Стиля, Длины и Подачи</h3>
+            <p class="text-[11px] text-slate-400">Управление темпом повествования, объемом постов и копирование авторской манеры</p>
+          </div>
+        </div>
+        <button id="close-style-modal-btn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1 select-text">
+        <!-- Режим длины постов -->
+        <div class="space-y-2">
+          <label class="block font-medium text-slate-200">Желаемый объем постов от ИИ:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="length-preset-group">
+            <label class="flex items-start gap-2.5 p-3 rounded-xl theme-bg-card theme-border border cursor-pointer hover:border-cyan-500/60 transition">
+              <input type="radio" name="length-preset" value="mirror" class="mt-0.5 accent-cyan-500">
+              <div>
+                <span class="block font-semibold text-slate-200">🪞 Зеркалить меня</span>
+                <span class="text-[10px] text-slate-400">ИИ подстраивает длину своего ответа под ваш объем поста</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-3 rounded-xl theme-bg-card theme-border border cursor-pointer hover:border-cyan-500/60 transition">
+              <input type="radio" name="length-preset" value="pingpong" class="mt-0.5 accent-cyan-500">
+              <div>
+                <span class="block font-semibold text-slate-200">⚡ Диалоговый пинг-понг</span>
+                <span class="text-[10px] text-slate-400">1–2 коротких абзаца, фокус на репликах и микрожестах</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-3 rounded-xl theme-bg-card theme-border border cursor-pointer hover:border-cyan-500/60 transition">
+              <input type="radio" name="length-preset" value="balanced" class="mt-0.5 accent-cyan-500">
+              <div>
+                <span class="block font-semibold text-slate-200">Баланс (2–3 абзаца)</span>
+                <span class="text-[10px] text-slate-400">Оптимальный литературный шаг с реакцией NPC и мира</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-3 rounded-xl theme-bg-card theme-border border cursor-pointer hover:border-cyan-500/60 transition">
+              <input type="radio" name="length-preset" value="literary" class="mt-0.5 accent-cyan-500">
+              <div>
+                <span class="block font-semibold text-slate-200">Развернутый (3–5 абзацев)</span>
+                <span class="text-[10px] text-slate-400">Глубокое погружение, быт, физика сцены и мысли NPC</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Фильтр графомании и штампов -->
+        <div class="p-3.5 rounded-xl bg-rose-950/20 border border-rose-900/40 space-y-2">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="anti-cliche-toggle" class="w-4 h-4 rounded accent-rose-500 bg-slate-800 border-slate-700" checked>
+            <span class="text-rose-200 font-medium">Анти-клише: Жесткий фильтр графомании и штампов</span>
+          </label>
+          <p class="text-[11px] text-rose-300/80 leading-relaxed">
+            Категорически запрещает нейросети использовать шаблонные штампы: <em>«уголок губ дрогнул в усмешке», «воздух стал вязким / наэлектризованным», «мурашки побежали по спине»</em>, а также запрещает подводить итоги и морализаторствовать в конце постов.
+          </p>
+        </div>
+
+        <!-- Эталон стиля (Few-Shot) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Эталон авторского стиля (Few-Shot)
+            </label>
+            <span class="text-[10px] text-slate-500">Необязательно</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Вставьте 1–2 абзаца текста из любимой книги или вашей удачной ролевой. Модель скопирует ритмику, построение фраз и словарный запас:</p>
+          <textarea id="reference-style-input" rows="4" placeholder="Вставьте сюда пример литературного текста, стиль которого должен перенять ИИ..." class="w-full theme-bg-card theme-border border rounded-xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 leading-relaxed font-serif"></textarea>
+        </div>
+      </div>
+
+      <div class="p-3.5 theme-border border-t flex justify-end shrink-0">
+        <button id="save-style-modal-btn" class="px-4 py-1.5 rounded-lg theme-accent-bg text-white font-medium text-xs shadow transition">Сохранить стиль</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: ЛОР, СЕТТИНГ И СУТЬ ИГРЫ (WORLD LORE VAULT) ==================== -->
+  <div id="lore-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] animate-fadeIn">
+      <div class="p-4 theme-border border-b flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-violet-950/60 theme-accent theme-border border">
+            <i data-lucide="book-open-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              Лор, Сеттинг и Суть Игры (World Lore Vault)
+            </h3>
+            <p class="text-[11px] text-slate-400">Фундаментальный слой знаний о мире, предыстории и целях текущей игры</p>
+          </div>
+        </div>
+        <button id="close-lore-modal-btn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1 select-text">
+        <!-- Верхняя плашка управления режимом и готовые пресеты -->
+        <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl theme-bg-card theme-border border">
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="lore-enabled-toggle" class="w-4 h-4 rounded accent-violet-600 bg-slate-800 border-slate-700" checked>
+            <span class="text-slate-200 font-medium">Учитывать данный Лор в ответах ИИ</span>
+          </label>
+          <div class="flex items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400">Быстрый сеттинг:</span>
+            <button type="button" class="lore-preset-btn px-2 py-0.5 rounded theme-bg-base theme-border border hover:text-white transition" data-preset="cyberpunk">Киберпанк</button>
+            <button type="button" class="lore-preset-btn px-2 py-0.5 rounded theme-bg-base theme-border border hover:text-white transition" data-preset="darkfantasy">Dark Fantasy</button>
+            <button type="button" class="lore-preset-btn px-2 py-0.5 rounded theme-bg-base theme-border border hover:text-white transition" data-preset="urban">Городской нуар</button>
+            <button type="button" class="lore-preset-btn px-2 py-0.5 rounded theme-bg-base theme-border border hover:text-white transition" data-preset="slice">Повседневность</button>
+          </div>
+        </div>
+
+        <!-- Переключатель режима: Свободный текст / Конструктор / Объединить -->
+        <div class="space-y-1.5">
+          <label class="block font-medium text-slate-300">Как передавать Лор в модель:</label>
+          <div class="grid grid-cols-3 gap-2 p-1 theme-bg-base rounded-xl theme-border border text-center font-medium">
+            <button type="button" id="lore-tab-freeform-btn" class="py-1.5 rounded-lg transition text-slate-300">
+              Свободный промпт
+            </button>
+            <button type="button" id="lore-tab-constructor-btn" class="py-1.5 rounded-lg transition text-slate-300">
+              Конструктор полей
+            </button>
+            <button type="button" id="lore-tab-both-btn" class="py-1.5 rounded-lg transition text-slate-300 theme-accent-bg text-white shadow">
+              Объединить оба
+            </button>
+          </div>
+        </div>
+
+        <!-- РЕЖИМ 1: СВОБОДНЫЙ ВВОД СВОИМИ СЛОВАМИ -->
+        <div id="lore-freeform-panel" class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-medium text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i> Свободный промпт Лора (своими словами)
+            </label>
+            <span class="text-[10px] text-slate-500">Любой скопированный или написанный текст</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Вставьте сюда готовое описание вселенной, предысторию персонажей, текущие события или правила ролевой в свободной форме:</p>
+          <textarea id="lore-freeform-input" rows="7" placeholder="Например: Действие происходит в альтернативном Лондоне 1920-х годов с элементами некромантии. Наш дуэт сбежал из королевской тюрьмы после обвинения в шпионаже. Главная цель — добраться до портовых доков, не попавшись патрулям ордена..." class="w-full theme-bg-card theme-border border rounded-xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-violet-500 leading-relaxed"></textarea>
+        </div>
+
+        <!-- РЕЖИМ 2: КОНСТРУКТОР МИРА ПО ПОЛЯМ -->
+        <div id="lore-constructor-panel" class="space-y-3 pt-2">
+          <div class="flex items-center justify-between border-t theme-border pt-3">
+            <label class="font-semibold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 theme-accent"></i> Структурированный конструктор мира:
+            </label>
+            <span class="text-[10px] text-slate-400">Заполните нужные пункты</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- 1. Название мира / Фандом -->
+            <div class="space-y-1">
+              <label class="block text-slate-300 font-medium">Фандом / Вселенная / Эпоха:</label>
+              <input type="text" id="lore-fandom-input" placeholder="Напр: Ведьмак, Cyberpunk 2077, Авторский мир" class="w-full theme-bg-card theme-border border rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500">
+            </div>
+
+            <!-- 2. Жанр и атмосфера -->
+            <div class="space-y-1">
+              <label class="block text-slate-300 font-medium">Жанр и общая атмосфера:</label>
+              <input type="text" id="lore-genre-input" placeholder="Напр: Психологический триллер, бытовая драма, нуар" class="w-full theme-bg-card theme-border border rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-violet-500">
+            </div>
+          </div>
+
+          <!-- 3. Суть ролевой и цель -->
+          <div class="space-y-1">
+            <label class="block text-slate-300 font-medium">Суть игры, отправная точка и текущая цель («Что мы здесь делаем»):</label>
+            <textarea id="lore-premise-input" rows="3" placeholder="Кто наши персонажи, что связывает их вместе, какой конфликт назрел прямо сейчас и к какой цели они двигаются..." class="w-full theme-bg-card theme-border border rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500 leading-relaxed"></textarea>
+          </div>
+
+          <!-- 4. Законы мира и табу -->
+          <div class="space-y-1">
+            <label class="block text-slate-300 font-medium">Законы мира, технологии/магия и табу (что невозможно в этом мире):</label>
+            <textarea id="lore-rules-input" rows="3" placeholder="Как устроена реальность: есть ли магия/импланты, цена за использование способностей, жесткие запреты и опасности мира..." class="w-full theme-bg-card theme-border border rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500 leading-relaxed"></textarea>
+          </div>
+
+          <!-- 5. Группировки и окружение -->
+          <div class="space-y-1">
+            <label class="block text-slate-300 font-medium">Сторонние группировки, влияние социума и враждебные силы:</label>
+            <textarea id="lore-factions-input" rows="2" placeholder="Корпорации, полиция, мафия, соседи, инквизиция — кто может вмешаться в события..." class="w-full theme-bg-card theme-border border rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500 leading-relaxed"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3.5 theme-border border-t flex items-center justify-between shrink-0 theme-bg-card/30">
+        <span id="lore-char-count" class="text-[11px] text-slate-400">Знаков лора: 0</span>
+        <div class="flex items-center gap-2">
+          <button type="button" id="lore-clear-btn" class="px-3 py-1.5 rounded-lg theme-bg-card hover:bg-white/5 text-slate-400 hover:text-rose-400 text-xs transition">Очистить лор</button>
+          <button type="button" id="lore-save-btn" class="px-4 py-1.5 rounded-lg theme-accent-bg text-white font-medium text-xs shadow transition">Сохранить и внедрить в ИИ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: 3 КНОПКИ ПЕРЕГЕНЕРАЦИИ ==================== -->
+  <div id="reroll-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-fadeIn">
+      <div class="p-4 theme-border border-b flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4 theme-accent"></i> Варианты перегенерации
+        </h3>
+        <button id="close-reroll-modal-btn" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-2.5 text-xs">
+        <p class="text-slate-400 text-[11px] mb-3">Выберите направление перегенерации. Прошлый ответ сохранится в свайпах (‹ 1/2 ›):</p>
+
+        <!-- Кнопка 1: Обычный реролл -->
+        <button id="reroll-normal-btn" class="w-full p-3 rounded-xl theme-bg-card hover:bg-white/5 theme-border border text-left flex items-start gap-3 transition">
+          <div class="p-2 rounded-lg bg-indigo-950/60 text-indigo-400 shrink-0">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="block font-semibold text-slate-200">Обычный реролл</span>
+            <span class="text-[11px] text-slate-400">Переписать ход в текущем темпе и объёме</span>
+          </div>
+        </button>
+
+        <!-- Кнопка 2: Написать больше -->
+        <button id="reroll-more-btn" class="w-full p-3 rounded-xl theme-bg-card hover:bg-white/5 theme-border border text-left flex items-start gap-3 transition">
+          <div class="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 shrink-0">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="block font-semibold text-slate-200">Написать больше (+Детали)</span>
+            <span class="text-[11px] text-slate-400">Развернуть глубокий пост с акцентом на окружение и жесты NPC</span>
+          </div>
+        </button>
+
+        <!-- Кнопка 3: Написать короче -->
+        <button id="reroll-less-btn" class="w-full p-3 rounded-xl theme-bg-card hover:bg-white/5 theme-border border text-left flex items-start gap-3 transition">
+          <div class="p-2 rounded-lg bg-amber-950/60 text-amber-400 shrink-0">
+            <i data-lucide="minus-circle" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <span class="block font-semibold text-slate-200">Написать короче (-Сжато)</span>
+            <span class="text-[11px] text-slate-400">Сделать емкий, лаконичный и кинематографичный ответ</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ NPC ==================== -->
+  <div id="npc-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fadeIn">
+      <div class="p-4 theme-border border-b flex items-center justify-between">
+        <h3 id="npc-modal-title" class="text-sm font-semibold text-white flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 theme-accent"></i> Новый персонаж (NPC)
+        </h3>
+        <button id="close-npc-modal" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="npc-form" class="p-4 space-y-3.5 text-xs">
+        <input type="hidden" id="npc-edit-id">
+
+        <div class="grid grid-cols-4 gap-2">
+          <div class="col-span-1">
+            <label class="block text-slate-400 mb-1">Иконка</label>
+            <input type="text" id="npc-emoji" value="👤" maxlength="2" class="w-full theme-bg-card theme-border border rounded-lg p-2 text-center text-lg focus:outline-none focus:border-violet-500">
+          </div>
+          <div class="col-span-3">
+            <label class="block text-slate-400 mb-1">Имя персонажа</label>
+            <input type="text" id="npc-name" placeholder="Например: Кай" required class="w-full theme-bg-card theme-border border rounded-lg p-2 text-slate-200 focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">Роль / Статус в мире</label>
+          <input type="text" id="npc-role" placeholder="Следователь, хакер, наемник..." class="w-full theme-bg-card theme-border border rounded-lg p-2 text-slate-200 focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">Характер и тайные мотивы</label>
+          <textarea id="npc-personality" rows="2" placeholder="Циничен, скрытен, бережет личные секреты..." class="w-full theme-bg-card theme-border border rounded-lg p-2 text-slate-200 focus:outline-none focus:border-violet-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 mb-1">Особенности речи и привычки</label>
+          <input type="text" id="npc-speech" placeholder="Говорит хрипло, часто курит, язвит..." class="w-full theme-bg-card theme-border border rounded-lg p-2 text-slate-200 focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="npc-in-scene" class="w-4 h-4 rounded accent-violet-600 bg-slate-800 border-slate-700">
+          <label for="npc-in-scene" class="text-slate-300 font-medium cursor-pointer">Сразу поместить персонажа «В кадр» (активен в сцене)</label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 theme-border border-t">
+          <button type="button" id="cancel-npc-modal" class="px-3 py-1.5 rounded-lg theme-bg-card hover:bg-white/5 text-slate-300 transition">Отмена</button>
+          <button type="submit" class="px-4 py-1.5 rounded-lg theme-accent-bg text-white font-medium transition">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== КАСТОМНЫЕ УВЕДОМЛЕНИЯ (TOAST) ==================== -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 theme-bg-panel theme-border border px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 text-xs text-slate-200 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <i id="toast-icon" data-lucide="info" class="w-4 h-4 theme-accent shrink-0"></i>
+    <span id="toast-text">Сообщение</span>
+  </div>
+
+  <!-- ==================== КАСТОМНЫЙ ДИАЛОГ (NO ALERT/CONFIRM) ==================== -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="theme-bg-panel theme-border border rounded-xl w-full max-w-sm p-4 space-y-4 shadow-2xl">
+      <div class="flex items-center gap-2 text-rose-400">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        <h4 class="font-semibold text-sm text-white" id="confirm-title">Подтверждение</h4>
+      </div>
+      <p class="text-xs text-slate-300" id="confirm-desc">Вы уверены?</p>
+      <div class="flex justify-end gap-2">
+        <button id="confirm-cancel-btn" class="px-3 py-1.5 rounded theme-bg-card hover:bg-white/5 text-slate-300 text-xs">Отмена</button>
+        <button id="confirm-ok-btn" class="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JS ДВИЖОК RP STUDIO MAX ==================== -->
+  <script>
+    /* =========================================================================
+       СИСТЕМНЫЙ КОДЕКС БЕЗ ЦЕНЗУРЫ И С ЖЕСТКИМИ ТАБУ НА ОТЫГРЫШ ЗА ИГРОКА
+       ========================================================================= */
+    const DEFAULT_SYSTEM_PROMPT = `Ты — искусный литературный соавтор и гейм-мастер в русскоязычной текстовой ролевой игре.
+Твоя задача — кинематографично и живо отыгрывать последствия, окружающий мир и активных персонажей (NPC).
+
+ФУНДАМЕНТАЛЬНЫЕ ЗАКОНЫ РОЛЕВОЙ (ТАБУ):
+1. ЖЕСТКИЙ ЗАПРЕТ НА ОТЫГРЫШ ЗА ИГРОКА: Категорически запрещено писать реплики, внутренние мысли, эмоции, решения или действия за персонажа игрока ({PLAYER_NAME})! Ты управляешь ИСКЛЮЧИТЕЛЬНО миром и NPC. Всегда передавай мяч и инициативу игроку в конце своего хода.
+2. ЗАПРЕТ НА ЭХО: Ни в коем случае не пересказывай предыдущий ход игрока в первом абзаце. Сразу переходи к живой реакции NPC и изменениям ситуации.
+3. ВЗРОСЛЫЙ СЮЖЕТ И РЕАЛИЗМ (БЕЗ ДЕТСКОГО САДА): Это свободная творческая проза для взрослых авторов. Разрешены и приветствуются: реалистичный конфликт, психологическое напряжение, язвительный юмор, страх, жесткие диалоги, романтическая и темная динамика, криминальные и бытовые мотивы. Запрещено читать морализаторские лекции или сглаживать естественные человеческие эмоции.
+4. ПЕРСОНАЖИ В КАДРЕ: Руководствуйся характерами только тех NPC, которые сейчас присутствуют в сцене. Учитывай их скрытые мотивы, пороки, привычки речи и отношение к {PLAYER_NAME}.
+5. ФИЗИКА СЦЕНЫ И ИНВЕНТАРЬ: Учитывай текущую локацию, погоду, звуки и физические предметы в инвентаре.
+6. РЕЖИМ МИТ-ПАУЗЫ (OOC): Если пришло сообщение в режиме OOC, выйди из роли персонажей и ответь как увлеченный соавтор/режиссер, предлагая идеи развития сюжета.
+7. РЕЖИССЕРСКИЙ P.S.: Если к ходу добавлено скрытое указание "P.S.", беспрекословно воплоти его в литературной ткани текста.`;
+
+    /* БАЗА СЛУЧАЙНЫХ БЫТОВЫХ И АТМОСФЕРНЫХ ТРИГГЕРОВ ("БРОСИТЬ КУБИК") */
+    const RANDOM_ATMOSPHERIC_EVENTS = [
+      "Внезапно в тишине громко вибрирует оставленный на столе телефон.",
+      "За окном с пронзительным визгом тормозов резко останавливается машина.",
+      "Сквозняк с глухим стуком захлопывает незапертую форточку или дверь.",
+      "У соседей сверху что-то с грохотом падает на пол.",
+      "В помещении на мгновение мигает свет, издав характерный электрический треск.",
+      "NPC случайно задевает край стола, роняя чашку или связку ключей.",
+      "В коридоре раздаются чужие шаги, которые внезапно замирают перед самой дверью.",
+      "С улицы доносится вой сирены скорой помощи, заглушая слова на несколько секунд.",
+      "NPC резко вздрагивает от пришедшего уведомления и украдкой прячет экран.",
+      "Внезапный порыв ветра бьет каплями дождя в стекло, заставляя рамы дребезжать.",
+      "Случайный прохожий или посторонний человек пристально обращает на нас внимание.",
+      "Раздается неожиданный, четкий стук в дверь.",
+      "Запах сырости и холодного сквозняка внезапно наполняет комнату.",
+      "На улице внезапно начинает истошно выть автомобильная сигнализация.",
+      "NPC переводит взгляд на часы и заметно напрягается, явно скрывая спешку.",
+      "В тишине раздается назойливый шум закипающего чайника или капающего крана."
+    ];
+
+    /* ПРЕСЕТЫ ТЕМ ОФОРМЛЕНИЯ */
+    const THEME_PRESETS = {
+      obsidian: {
+        bgBase: '#0b0e14', bgPanel: '#111622', bgCard: '#182030', bgBorder: '#222d42',
+        accent: '#8b5cf6', accentHover: '#7c3aed', accentGlow: 'rgba(139, 92, 246, 0.25)'
+      },
+      midnight: {
+        bgBase: '#060913', bgPanel: '#0c1222', bgCard: '#141e38', bgBorder: '#1d2d54',
+        accent: '#06b6d4', accentHover: '#0891b2', accentGlow: 'rgba(6, 182, 212, 0.25)'
+      },
+      crimson: {
+        bgBase: '#12080a', bgPanel: '#1c0e12', bgCard: '#28141b', bgBorder: '#3d1c27',
+        accent: '#f43f5e', accentHover: '#e11d48', accentGlow: 'rgba(244, 63, 94, 0.25)'
+      },
+      sepia: {
+        bgBase: '#12100d', bgPanel: '#1b1712', bgCard: '#26201a', bgBorder: '#3b3228',
+        accent: '#d97706', accentHover: '#b45309', accentGlow: 'rgba(217, 119, 6, 0.25)'
+      },
+      oled: {
+        bgBase: '#000000', bgPanel: '#0a0a0a', bgCard: '#141414', bgBorder: '#242424',
+        accent: '#6366f1', accentHover: '#4f46e5', accentGlow: 'rgba(99, 102, 241, 0.25)'
+      }
+    };
+
+    /* =========================================================================
+       СОСТОЯНИЕ ПРИЛОЖЕНИЯ (STATE) — НАСТОЯЩИЙ ЧИСТЫЙ ЛИСТ
+       ========================================================================= */
+    let state = {
+      apiKey: localStorage.getItem('rp_max_api_key') || '',
+      model: localStorage.getItem('rp_max_model') || 'gemini-2.5-flash',
+      temperature: parseFloat(localStorage.getItem('rp_max_temp')) || 0.9,
+      contextDepth: parseInt(localStorage.getItem('rp_max_context_depth')) || 20,
+      
+      playerName: localStorage.getItem('rp_max_player_name') || 'Герой',
+      playerBio: localStorage.getItem('rp_max_player_bio') || '',
+      systemPrompt: localStorage.getItem('rp_max_system_prompt') || DEFAULT_SYSTEM_PROMPT,
+
+      // ЛОР МИРА, ВСЕЛЕННАЯ И СЕТТИНГ (WORLD LORE VAULT)
+      worldLore: JSON.parse(localStorage.getItem('rp_max_world_lore')) || {
+        enabled: true,
+        mode: 'both', // 'freeform', 'constructor', 'both'
+        freeform: '',
+        fandom: '',
+        premise: '',
+        genre: '',
+        rules: '',
+        factions: ''
+      },
+
+      // КАЛИБРОВКА СТИЛЯ И ОБЪЕМА
+      styleConfig: JSON.parse(localStorage.getItem('rp_max_style_config')) || {
+        lengthMode: 'balanced', // 'mirror', 'pingpong', 'balanced', 'literary'
+        antiCliche: true,
+        referenceStyle: ''
+      },
+
+      // Сцена и инвентарь
+      scene: JSON.parse(localStorage.getItem('rp_max_scene')) || {
+        location: '',
+        time: '',
+        weather: ''
+      },
+      inventory: JSON.parse(localStorage.getItem('rp_max_inventory')) || [],
+
+      // Блокнот
+      scratchpad: localStorage.getItem('rp_max_scratchpad') || '',
+
+      // Оформление
+      theme: JSON.parse(localStorage.getItem('rp_max_theme')) || THEME_PRESETS.obsidian,
+      currentThemePreset: localStorage.getItem('rp_max_theme_name') || 'obsidian',
+      fontFamily: localStorage.getItem('rp_max_font_family') || "'Inter', system-ui, -apple-system, sans-serif",
+      fontSize: parseFloat(localStorage.getItem('rp_max_font_size')) || 14.5,
+      lineHeight: parseFloat(localStorage.getItem('rp_max_line_height')) || 1.65,
+
+      // Персонажи и сообщения
+      npcs: JSON.parse(localStorage.getItem('rp_max_npcs')) || [],
+      messages: JSON.parse(localStorage.getItem('rp_max_messages')) || [],
+
+      // Внутренние состояния
+      composerMode: 'ic', // 'ic' или 'ooc'
+      isGenerating: false,
+      activeRerollMsgId: null,
+      editingMsgId: null
+    };
+
+    /* =========================================================================
+       DOM ЭЛЕМЕНТЫ
+       ========================================================================= */
+    const leftSidebar = document.getElementById('left-sidebar');
+    const rightSidebar = document.getElementById('right-sidebar');
+    const scratchpadDrawer = document.getElementById('scratchpad-drawer');
+    const mobileBackdrop = document.getElementById('mobile-backdrop');
+    
+    const toggleLeftBtn = document.getElementById('toggle-left-btn');
+    const toggleRightBtn = document.getElementById('toggle-right-btn');
+    const toggleScratchpadBtn = document.getElementById('toggle-scratchpad-btn');
+    const toggleSceneBtn = document.getElementById('toggle-scene-btn');
+    const closeRightBtn = document.getElementById('close-right-btn');
+    const closeScratchpadBtn = document.getElementById('close-scratchpad-btn');
+
+    const zenEnterBtn = document.getElementById('zen-enter-btn');
+    const zenExitBtn = document.getElementById('zen-exit-btn');
+
+    const sceneBar = document.getElementById('scene-bar');
+    const sceneLocationInput = document.getElementById('scene-location-input');
+    const sceneTimeInput = document.getElementById('scene-time-input');
+    const sceneWeatherInput = document.getElementById('scene-weather-input');
+    const quickSceneInfo = document.getElementById('quick-scene-info');
+    const toggleInventoryDetailsBtn = document.getElementById('toggle-inventory-details-btn');
+    const inventoryDropdown = document.getElementById('inventory-dropdown');
+    const inventoryTagsContainer = document.getElementById('inventory-tags-container');
+    const inventoryBadgeCount = document.getElementById('inventory-badge-count');
+    const newItemInput = document.getElementById('new-item-input');
+    const addItemBtn = document.getElementById('add-item-btn');
+
+    const scratchpadInput = document.getElementById('scratchpad-input');
+
+    const chatMessagesEl = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const aiLoadingEl = document.getElementById('ai-loading');
+
+    const charCounter = document.getElementById('char-counter');
+    const wordCounter = document.getElementById('word-counter');
+    const readingTimeCounter = document.getElementById('reading-time-counter');
+
+    const modeIcBtn = document.getElementById('mode-ic-btn');
+    const modeOocBtn = document.getElementById('mode-ooc-btn');
+    const playerNameInput = document.getElementById('player-name-input');
+    
+    const toggleDirectorBtn = document.getElementById('toggle-director-btn');
+    const directorBox = document.getElementById('director-box');
+    const directorInput = document.getElementById('director-input');
+    const clearPsBtn = document.getElementById('clear-ps-btn');
+    const psActiveDot = document.getElementById('ps-active-dot');
+    const rollRandomEventBtn = document.getElementById('roll-random-event-btn');
+
+    const npcListEl = document.getElementById('npc-list');
+    const activeNpcsCountEl = document.getElementById('active-npcs-count');
+    const addNpcBtn = document.getElementById('add-npc-btn');
+    const npcModal = document.getElementById('npc-modal');
+    const closeNpcModal = document.getElementById('close-npc-modal');
+    const cancelNpcModal = document.getElementById('cancel-npc-modal');
+    const npcForm = document.getElementById('npc-form');
+
+    const apiKeyInput = document.getElementById('api-key-input');
+    const toggleKeyVisibility = document.getElementById('toggle-key-visibility');
+    const apiStatusDot = document.getElementById('api-status-dot');
+    const modelSelect = document.getElementById('model-select');
+    const tempRange = document.getElementById('temp-range');
+    const tempVal = document.getElementById('temp-val');
+    const contextRange = document.getElementById('context-range');
+    const contextVal = document.getElementById('context-val');
+    const playerBioInput = document.getElementById('player-bio-input');
+    const systemPromptInput = document.getElementById('system-prompt-input');
+    const resetPromptBtn = document.getElementById('reset-prompt-btn');
+
+    // Элементы модуля "Лор Мира" (World Lore Vault)
+    const toggleLoreBtn = document.getElementById('toggle-lore-btn');
+    const quickWorldBadge = document.getElementById('quick-world-badge');
+    const headerFandomTitle = document.getElementById('header-fandom-title');
+    const sidebarOpenLoreBtn = document.getElementById('sidebar-open-lore-btn');
+    const loreStatusDot = document.getElementById('lore-status-dot');
+    const sidebarLoreFandom = document.getElementById('sidebar-lore-fandom');
+    const sidebarLoreBadge = document.getElementById('sidebar-lore-badge');
+    const sidebarLorePreview = document.getElementById('sidebar-lore-preview');
+    const loreModal = document.getElementById('lore-modal');
+    const closeLoreModalBtn = document.getElementById('close-lore-modal-btn');
+    const loreEnabledToggle = document.getElementById('lore-enabled-toggle');
+    const loreTabFreeformBtn = document.getElementById('lore-tab-freeform-btn');
+    const loreTabConstructorBtn = document.getElementById('lore-tab-constructor-btn');
+    const loreTabBothBtn = document.getElementById('lore-tab-both-btn');
+    const loreFreeformPanel = document.getElementById('lore-freeform-panel');
+    const loreConstructorPanel = document.getElementById('lore-constructor-panel');
+    const loreFreeformInput = document.getElementById('lore-freeform-input');
+    const loreFandomInput = document.getElementById('lore-fandom-input');
+    const loreGenreInput = document.getElementById('lore-genre-input');
+    const lorePremiseInput = document.getElementById('lore-premise-input');
+    const loreRulesInput = document.getElementById('lore-rules-input');
+    const loreFactionsInput = document.getElementById('lore-factions-input');
+    const loreCharCount = document.getElementById('lore-char-count');
+    const loreClearBtn = document.getElementById('lore-clear-btn');
+    const loreSaveBtn = document.getElementById('lore-save-btn');
+
+    // Элементы модуля "Стиль и Длина"
+    const toggleStyleBtn = document.getElementById('toggle-style-btn');
+    const styleModal = document.getElementById('style-modal');
+    const closeStyleModalBtn = document.getElementById('close-style-modal-btn');
+    const saveStyleModalBtn = document.getElementById('save-style-modal-btn');
+    const antiClicheToggle = document.getElementById('anti-cliche-toggle');
+    const referenceStyleInput = document.getElementById('reference-style-input');
+
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    const exportMdBtn = document.getElementById('export-md-btn');
+    const backupSaveBtn = document.getElementById('backup-save-btn');
+    const backupLoadInput = document.getElementById('backup-load-input');
+
+    // Модалка тем
+    const openThemeModalBtn = document.getElementById('open-theme-modal-btn');
+    const closeThemeModalBtn = document.getElementById('close-theme-modal-btn');
+    const themeModal = document.getElementById('theme-modal');
+    const saveThemeModalBtn = document.getElementById('save-theme-modal-btn');
+    const customBgColor = document.getElementById('custom-bg-color');
+    const customBgHex = document.getElementById('custom-bg-hex');
+    const customAccentColor = document.getElementById('custom-accent-color');
+    const customAccentHex = document.getElementById('custom-accent-hex');
+    const fontFamilySelect = document.getElementById('font-family-select');
+    const fontSizeRange = document.getElementById('font-size-range');
+    const fontSizeVal = document.getElementById('font-size-val');
+    const lineHeightRange = document.getElementById('line-height-range');
+    const lineHeightVal = document.getElementById('line-height-val');
+
+    // Модалка реролла
+    const rerollModal = document.getElementById('reroll-modal');
+    const closeRerollModalBtn = document.getElementById('close-reroll-modal-btn');
+    const rerollNormalBtn = document.getElementById('reroll-normal-btn');
+    const rerollMoreBtn = document.getElementById('reroll-more-btn');
+    const rerollLessBtn = document.getElementById('reroll-less-btn');
+
+    // Тост и конфирм
+    const toastEl = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+    const toastIcon = document.getElementById('toast-icon');
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmTitle = document.getElementById('confirm-title');
+    const confirmDesc = document.getElementById('confirm-desc');
+    const confirmOkBtn = document.getElementById('confirm-ok-btn');
+    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+
+    /* =========================================================================
+       ПРИМЕНЕНИЕ ТЕМ И ЦВЕТОВ
+       ========================================================================= */
+    function applyTheme() {
+      const root = document.documentElement;
+      const t = state.theme;
+
+      root.style.setProperty('--bg-base', t.bgBase);
+      root.style.setProperty('--bg-panel', t.bgPanel);
+      root.style.setProperty('--bg-card', t.bgCard);
+      root.style.setProperty('--bg-border', t.bgBorder);
+      root.style.setProperty('--accent-color', t.accent);
+      root.style.setProperty('--accent-hover', t.accentHover || t.accent);
+      root.style.setProperty('--accent-glow', t.accentGlow || 'rgba(139, 92, 246, 0.25)');
+
+      root.style.setProperty('--font-family-body', state.fontFamily);
+      root.style.setProperty('--chat-font-size', `${state.fontSize}px`);
+      root.style.setProperty('--chat-line-height', state.lineHeight);
+
+      // Синхронизация полей модалки
+      customBgColor.value = t.bgBase;
+      customBgHex.value = t.bgBase;
+      customAccentColor.value = t.accent;
+      customAccentHex.value = t.accent;
+      fontFamilySelect.value = state.fontFamily;
+      fontSizeRange.value = state.fontSize;
+      fontSizeVal.textContent = `${state.fontSize}px`;
+      lineHeightRange.value = state.lineHeight;
+      lineHeightVal.textContent = state.lineHeight;
+    }
+
+    function saveState() {
+      localStorage.setItem('rp_max_api_key', state.apiKey);
+      localStorage.setItem('rp_max_model', state.model);
+      localStorage.setItem('rp_max_temp', state.temperature);
+      localStorage.setItem('rp_max_context_depth', state.contextDepth);
+      localStorage.setItem('rp_max_player_name', state.playerName);
+      localStorage.setItem('rp_max_player_bio', state.playerBio);
+      localStorage.setItem('rp_max_system_prompt', state.systemPrompt);
+
+      // Сохранение Лора Мира и Настроек Стиля
+      localStorage.setItem('rp_max_world_lore', JSON.stringify(state.worldLore));
+      localStorage.setItem('rp_max_style_config', JSON.stringify(state.styleConfig));
+
+      localStorage.setItem('rp_max_scene', JSON.stringify(state.scene));
+      localStorage.setItem('rp_max_inventory', JSON.stringify(state.inventory));
+      localStorage.setItem('rp_max_scratchpad', state.scratchpad);
+
+      localStorage.setItem('rp_max_theme', JSON.stringify(state.theme));
+      localStorage.setItem('rp_max_theme_name', state.currentThemePreset);
+      localStorage.setItem('rp_max_font_family', state.fontFamily);
+      localStorage.setItem('rp_max_font_size', state.fontSize);
+      localStorage.setItem('rp_max_line_height', state.lineHeight);
+
+      localStorage.setItem('rp_max_npcs', JSON.stringify(state.npcs));
+      localStorage.setItem('rp_max_messages', JSON.stringify(state.messages));
+      updateApiIndicator();
+    }
+
+    function initUI() {
+      applyTheme();
+
+      apiKeyInput.value = state.apiKey;
+      updateApiIndicator();
+
+      modelSelect.value = state.model;
+      tempRange.value = state.temperature;
+      tempVal.textContent = state.temperature;
+      contextRange.value = state.contextDepth;
+      contextVal.textContent = `${state.contextDepth} постов`;
+
+      playerNameInput.value = state.playerName;
+      playerBioInput.value = state.playerBio;
+      systemPromptInput.value = state.systemPrompt;
+
+      sceneLocationInput.value = state.scene.location || '';
+      sceneTimeInput.value = state.scene.time || '';
+      sceneWeatherInput.value = state.scene.weather || '';
+      updateQuickSceneBadge();
+
+      scratchpadInput.value = state.scratchpad;
+
+      renderLoreUI();
+      renderStyleUI();
+      renderInventory();
+      renderNpcList();
+      renderChat();
+      updateTextMetrics();
+      lucide.createIcons();
+    }
+
+    function updateApiIndicator() {
+      if (state.apiKey && state.apiKey.trim().length > 10) {
+        apiStatusDot.className = "absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500";
+      } else {
+        apiStatusDot.className = "absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+      }
+    }
+
+    /* =========================================================================
+       МОДУЛЬ ЛОРА МИРА И ВСЕЛЕННОЙ (WORLD LORE VAULT)
+       ========================================================================= */
+    const LORE_PRESETS = {
+      cyberpunk: {
+        fandom: "Cyberpunk / Найт-Сити",
+        genre: "Киберпанк, грязный реализм, криминальный триллер",
+        premise: "Наш отряд наемников взял нелегальный заказ на кражу защищенного чипа. Заказчик подставил нас, чистильщики корпорации идут по пятам.",
+        rules: "Хромированные импланты разрушают психику (киберпсихоз). Полиция куплена, миром правят мегакорпорации. Сленг: чумба, эдди, дельтануть, нетраннер.",
+        factions: "Корпорация Арасака, банда Мальстрём, полиция NCPD.",
+        freeform: "Найт-Сити, 2077 год. Неоновые трущобы, постоянный кислотный дождь. Мы укрылись на заброшенном складе в Уотсоне, залечивая раны после сорванного налета."
+      },
+      darkfantasy: {
+        fandom: "Grimdark Fantasy",
+        genre: "Тёмное фэнтези, выживание, средневековый хоррор",
+        premise: "Проклятые земли, разоренные чумой скверны. Мы сопровождаем беглого мага через заброшенные тракты, пытаясь доставить печать древних.",
+        rules: "Магия требует крови и оставляет физическую порчу. Инквизиция сжигает за малейшее подозрение. Люди жестоки, никакого благородства.",
+        factions: "Святая Инквизиция, бароны-разбойники, чумные сектанты.",
+        freeform: "Холодная осень в проклятом герцогстве. Вокруг пепелища деревень и стаи одичавших псов. В нашем кошельке почти нет монет, а сталь покрыта ржавчиной."
+      },
+      urban: {
+        fandom: "Городская мистика / Тайный Орден",
+        genre: "Городской нуар, оккультный детектив",
+        premise: "Современный дождливый мегаполис. За неоновым фасадом скрываются древние кланы нежити. Мы расследуем ритуальное убийство архонта.",
+        rules: "Соблюдение Маскарада: смертные ни при каких обстоятельствах не должны узнать правду. Оружие и смартфоны смешиваются с кровными клятвами.",
+        factions: "Совет Старейшин, охотники на нечисть, продажный отдел полиции.",
+        freeform: "Ночной Санкт-Петербург или Чикаго. Запах сырого асфальта, кофе в круглосуточных закусочных и холодная сталь револьвера во внутреннем кармане."
+      },
+      slice: {
+        fandom: "Реалистичная повседневность",
+        genre: "Психологическая драма, сложная бытовая динамика",
+        premise: "Два человека с тяжелым общим прошлым вынуждены делить одну съемную квартиру и решать накопившиеся финансовые и личные проблемы.",
+        rules: "Строгий бытовой реализм: усталость от работы, нехватка денег, реальные бытовые звуки и неловкие диалоги без фальшивого пафоса.",
+        factions: "Работодатели, арендодатель, старые знакомые, родственники.",
+        freeform: "Маленькая кухня хрущевки или старого лофта. Скрип половиц, остывающий чай в кружке, включенный на фоне старый телевизор и тяжелый разговор."
+      }
+    };
+
+    function renderLoreUI() {
+      const lore = state.worldLore;
+      loreEnabledToggle.checked = lore.enabled !== false;
+      loreFreeformInput.value = lore.freeform || '';
+      loreFandomInput.value = lore.fandom || '';
+      loreGenreInput.value = lore.genre || '';
+      lorePremiseInput.value = lore.premise || '';
+      loreRulesInput.value = lore.rules || '';
+      loreFactionsInput.value = lore.factions || '';
+
+      setLoreTab(lore.mode || 'both');
+      updateLoreMetrics();
+      updateLoreBadges();
+    }
+
+    function setLoreTab(mode) {
+      state.worldLore.mode = mode;
+      loreTabFreeformBtn.className = mode === 'freeform' ? 'py-1.5 rounded-lg transition theme-accent-bg text-white shadow' : 'py-1.5 rounded-lg transition text-slate-400 hover:text-white';
+      loreTabConstructorBtn.className = mode === 'constructor' ? 'py-1.5 rounded-lg transition theme-accent-bg text-white shadow' : 'py-1.5 rounded-lg transition text-slate-400 hover:text-white';
+      loreTabBothBtn.className = mode === 'both' ? 'py-1.5 rounded-lg transition theme-accent-bg text-white shadow' : 'py-1.5 rounded-lg transition text-slate-400 hover:text-white';
+
+      if (mode === 'freeform') {
+        loreFreeformPanel.classList.remove('hidden');
+        loreConstructorPanel.classList.add('hidden');
+      } else if (mode === 'constructor') {
+        loreFreeformPanel.classList.add('hidden');
+        loreConstructorPanel.classList.remove('hidden');
+      } else {
+        loreFreeformPanel.classList.remove('hidden');
+        loreConstructorPanel.classList.remove('hidden');
+      }
+    }
+
+    loreTabFreeformBtn.addEventListener('click', () => setLoreTab('freeform'));
+    loreTabConstructorBtn.addEventListener('click', () => setLoreTab('constructor'));
+    loreTabBothBtn.addEventListener('click', () => setLoreTab('both'));
+
+    function updateLoreMetrics() {
+      const totalLen = (loreFreeformInput.value + loreFandomInput.value + loreGenreInput.value + lorePremiseInput.value + loreRulesInput.value + loreFactionsInput.value).length;
+      loreCharCount.textContent = `Знаков лора: ${totalLen}`;
+    }
+
+    function updateLoreBadges() {
+      const lore = state.worldLore;
+      const isEnabled = lore.enabled !== false;
+      const title = lore.fandom || (lore.freeform ? lore.freeform.slice(0, 24) + '...' : 'Не задан');
+      const hasContent = Boolean(lore.freeform || lore.fandom || lore.premise || lore.rules);
+
+      headerFandomTitle.textContent = `Сеттинг: ${title}`;
+
+      if (isEnabled && hasContent) {
+        loreStatusDot.className = "w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400";
+        sidebarLoreBadge.className = "px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800";
+        sidebarLoreBadge.textContent = "АКТИВЕН";
+      } else if (!isEnabled) {
+        loreStatusDot.className = "w-1.5 h-1.5 rounded-full bg-slate-500";
+        sidebarLoreBadge.className = "px-1.5 py-0.2 rounded text-[9px] font-mono bg-slate-800 text-slate-400 border border-slate-700";
+        sidebarLoreBadge.textContent = "ОТКЛЮЧЕН";
+      } else {
+        loreStatusDot.className = "w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse";
+        sidebarLoreBadge.className = "px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-950 text-amber-400 border border-amber-800";
+        sidebarLoreBadge.textContent = "НЕ ЗАДАН";
+      }
+
+      sidebarLoreFandom.textContent = lore.fandom || (lore.freeform ? 'Свободный текст' : 'Не задана');
+      sidebarLorePreview.textContent = lore.premise || lore.freeform || (lore.rules ? lore.rules.slice(0, 100) + '...' : 'Лор мира пуст. Добавьте канон фандома и сюжетную завязку.');
+    }
+
+    function openLoreModal() {
+      renderLoreUI();
+      loreModal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    toggleLoreBtn.addEventListener('click', openLoreModal);
+    quickWorldBadge.addEventListener('click', openLoreModal);
+    sidebarOpenLoreBtn.addEventListener('click', openLoreModal);
+    closeLoreModalBtn.addEventListener('click', () => loreModal.classList.add('hidden'));
+
+    [loreFreeformInput, loreFandomInput, loreGenreInput, lorePremiseInput, loreRulesInput, loreFactionsInput].forEach(inp => {
+      inp.addEventListener('input', updateLoreMetrics);
+    });
+
+    document.querySelectorAll('.lore-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-preset');
+        const p = LORE_PRESETS[key];
+        if (p) {
+          loreFandomInput.value = p.fandom;
+          loreGenreInput.value = p.genre || '';
+          lorePremiseInput.value = p.premise;
+          loreRulesInput.value = p.rules;
+          loreFactionsInput.value = p.factions || '';
+          loreFreeformInput.value = p.freeform || '';
+          updateLoreMetrics();
+          showToast(`Шаблон "${key}" загружен!`, 'info');
+        }
+      });
+    });
+
+    loreClearBtn.addEventListener('click', () => {
+      openConfirm('Очистить лор мира?', 'Все поля лора, фандома и правил будут сброшены.', () => {
+        loreFreeformInput.value = '';
+        loreFandomInput.value = '';
+        loreGenreInput.value = '';
+        lorePremiseInput.value = '';
+        loreRulesInput.value = '';
+        loreFactionsInput.value = '';
+        updateLoreMetrics();
+        showToast('Поля лора очищены');
+      });
+    });
+
+    loreSaveBtn.addEventListener('click', () => {
+      state.worldLore = {
+        enabled: loreEnabledToggle.checked,
+        mode: state.worldLore.mode || 'both',
+        freeform: loreFreeformInput.value.trim(),
+        fandom: loreFandomInput.value.trim(),
+        genre: loreGenreInput.value.trim(),
+        premise: lorePremiseInput.value.trim(),
+        rules: loreRulesInput.value.trim(),
+        factions: loreFactionsInput.value.trim()
+      };
+      saveState();
+      updateLoreBadges();
+      loreModal.classList.add('hidden');
+      showToast('Лор мира успешно зафиксирован в памяти ИИ!', 'success');
+    });
+
+    /* =========================================================================
+       МОДУЛЬ КАЛИБРОВКИ СТИЛЯ И ОБЪЕМА
+       ========================================================================= */
+    function renderStyleUI() {
+      const sc = state.styleConfig;
+      const radio = document.querySelector(`input[name="length-preset"][value="${sc.lengthMode}"]`);
+      if (radio) radio.checked = true;
+
+      antiClicheToggle.checked = sc.antiCliche !== false;
+      referenceStyleInput.value = sc.referenceStyle || '';
+    }
+
+    toggleStyleBtn.addEventListener('click', () => {
+      renderStyleUI();
+      styleModal.classList.remove('hidden');
+    });
+
+    closeStyleModalBtn.addEventListener('click', () => {
+      styleModal.classList.add('hidden');
+    });
+
+    saveStyleModalBtn.addEventListener('click', () => {
+      const selectedRadio = document.querySelector('input[name="length-preset"]:checked');
+      state.styleConfig = {
+        lengthMode: selectedRadio ? selectedRadio.value : 'balanced',
+        antiCliche: antiClicheToggle.checked,
+        referenceStyle: referenceStyleInput.value.trim()
+      };
+      saveState();
+      styleModal.classList.add('hidden');
+      showToast('Параметры стиля и объема сохранены!', 'success');
+    });
+
+    /* =========================================================================
+       СБОРКА КОНТЕКСТА ДЛЯ GEMINI API С ПРИОРИТЕТНЫМ ЛОРОМ МИРА И СТИЛЕМ
+       ========================================================================= */
+    function buildCompiledSystemPrompt(customDirectorDirective = '') {
+      let prompt = state.systemPrompt.replace('{PLAYER_NAME}', state.playerName || 'Игрок');
+
+      // 1. WORLD LORE VAULT (ВЫСШИЙ ПРИОРИТЕТ)
+      if (state.worldLore && state.worldLore.enabled !== false) {
+        const mode = state.worldLore.mode || 'both';
+        let loreSections = [];
+
+        // Свободный промпт своими словами
+        if ((mode === 'freeform' || mode === 'both') && state.worldLore.freeform) {
+          loreSections.push(`[ОСНОВНОЙ ЛОР И ЗАВЯЗКА МИРА СВОИМИ СЛОВАМИ]:\n${state.worldLore.freeform}`);
+        }
+
+        // Конструктор мира
+        if (mode === 'constructor' || mode === 'both') {
+          let constructorLines = [];
+          if (state.worldLore.fandom) constructorLines.push(`• ВСЕЛЕННАЯ / ФАНДОМ: ${state.worldLore.fandom}`);
+          if (state.worldLore.genre) constructorLines.push(`• ЖАНР И АТМОСФЕРА: ${state.worldLore.genre}`);
+          if (state.worldLore.premise) constructorLines.push(`• СУТЬ ИГРЫ И ЦЕЛЬ («Что мы здесь делаем»): ${state.worldLore.premise}`);
+          if (state.worldLore.rules) constructorLines.push(`• ЗАКОНЫ МИРА И ТАБУ: ${state.worldLore.rules}`);
+          if (state.worldLore.factions) constructorLines.push(`• СТОРОННИЕ СИЛЫ И ГРУППИРОВКИ: ${state.worldLore.factions}`);
+
+          if (constructorLines.length > 0) {
+            loreSections.push(`[СТРУКТУРНЫЕ ЗАКОНЫ СЕТТИНГА]:\n` + constructorLines.join('\n'));
+          }
+        }
+
+        if (loreSections.length > 0) {
+          prompt += `\n\n==================================================\n`;
+          prompt += `ФУНДАМЕНТАЛЬНЫЙ ЛОР И ЗАДАЧИ РОЛЕВОЙ (СТРОЖАЙШЕ СОБЛЮДАТЬ):\n`;
+          prompt += loreSections.join('\n\n');
+          prompt += `\nИИ обязан органично вплетать эти законы, терминологию и предысторию в ход.\n`;
+          prompt += `==================================================`;
+        }
+      }
+
+      // 2. КАЛИБРОВКА СТИЛЯ И ОБЪЕМА
+      if (state.styleConfig) {
+        prompt += `\n\n--- КАЛИБРОВКА СТИЛЯ И ОБЪЕМА ПОСТА ---`;
+        const lm = state.styleConfig.lengthMode;
+        if (lm === 'mirror') {
+          prompt += `\n• ПРАВИЛО ЗЕРКАЛА ДЛИНЫ: Оцени объем предыдущего поста игрока и напиши пост сопоставимой длины. Не раздувай полотно в ответ на короткую фразу и не отвечай кратко на длинный развернутый ход.`;
+        } else if (lm === 'pingpong') {
+          prompt += `\n• ФОРМАТ ПИНГ-ПОНГ: Строго 1–2 лаконичных абзаца. Максимальный упор на живой диалог, интонации и мелкую моторику. Минимум пространных описаний.`;
+        } else if (lm === 'balanced') {
+          prompt += `\n• СБАЛАНСИРОВАННЫЙ ОБЪЕМ: Строго 2–3 плотных литературных абзаца. Сбалансированное сочетание действия NPC, прямой речи и реакции окружения.`;
+        } else if (lm === 'literary') {
+          prompt += `\n• РАЗВЕРНУТЫЙ ЛИТЕРАТУРНЫЙ ОБЪЕМ: 3–5 глубоких абзацев. Кинематографичные описания окружения, невербалика NPC, бытовые запахи, тактильные ощущения и атмосфера.`;
+        }
+
+        if (state.styleConfig.antiCliche) {
+          prompt += `\n• ФИЛЬТР ГРАФОМАНИИ (ТАБУ НА ШТАМПЫ): Категорически запрещено использовать дешевые нейросетевые клише: «уголок губ дрогнул в усмешке», «воздух стал вязким / наэлектризованным», «мурашки побежали по спине», «электрический разряд между ними». Запрещено подводить морализаторские или пафосные итоги в конце хода.`;
+        }
+
+        if (state.styleConfig.referenceStyle) {
+          prompt += `\n• ЭТАЛОН АВТОРСКОЙ МАНЕРЫ (ПИШИ В ТОЧНОСТИ ТАК): Копируй ритм, словарь и подачу следующего образца текста:\n"${state.styleConfig.referenceStyle}"`;
+        }
+      }
+
+      // 3. Данные игрока
+      prompt += `\n\n--- ДОСЬЕ ПЕРСОНАЖА ИГРОКА ---`;
+      prompt += `\nИмя персонажа игрока: ${state.playerName || 'Игрок'}`;
+      if (state.playerBio) {
+        prompt += `\nОписание и характер игрока: ${state.playerBio}`;
+      }
+
+      // 4. Сцена и инвентарь
+      prompt += `\n\n--- ТЕКУЩАЯ СЦЕНА И ОКРУЖЕНИЕ ---`;
+      prompt += `\nЛокация: ${state.scene.location || 'Не указана конкретно'}`;
+      prompt += `\nВремя суток: ${state.scene.time || 'Не указано'}`;
+      prompt += `\nПогода / Атмосфера: ${state.scene.weather || 'Обычная'}`;
+
+      if (state.inventory && state.inventory.length > 0) {
+        prompt += `\nФизические предметы в кадре (инвентарь): ${state.inventory.join(', ')}`;
+      }
+
+      // 5. Активные NPC в кадре
+      const activeNpcs = state.npcs.filter(n => n.inScene);
+      prompt += `\n\n--- АКТИВНЫЕ NPC В КАДРЕ (ТОЛЬКО ОНИ СЕЙЧАС ДЕЙСТВУЮТ) ---`;
+      if (activeNpcs.length === 0) {
+        prompt += `\nВ кадре нет выделенных NPC. Отыгрывай окружение, случайных прохожих и мир.`;
+      } else {
+        activeNpcs.forEach((npc, i) => {
+          prompt += `\n${i+1}. [${npc.name}] (Роль: ${npc.role || 'Житель'}):`;
+          prompt += `\n   - Личность и цели: ${npc.personality || 'Стандартные'}`;
+          prompt += `\n   - Манера речи: ${npc.speech || 'Обычная'}`;
+        });
+      }
+
+      if (customDirectorDirective) {
+        prompt += `\n\n--- ЭКСТРЕННАЯ РЕЖИССЕРСКАЯ ДИРЕКТИВА: ${customDirectorDirective} ---`;
+      }
+
+      return prompt;
+    }
+
+    /* =========================================================================
+       СИСТЕМНЫЕ УТИЛИТЫ: TOAST, CONFIRM, СКРОЛЛ
+       ========================================================================= */
+    function scrollChatToBottom() {
+      if (chatMessagesEl) {
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+    }
+
+    let toastTimeout = null;
+    function showToast(message, type = 'info') {
+      if (!toastEl || !toastText) return;
+      toastText.textContent = message;
+
+      if (toastIcon) {
+        if (type === 'error') {
+          toastIcon.setAttribute('data-lucide', 'alert-circle');
+          toastIcon.className = 'w-4 h-4 text-rose-400 shrink-0';
+        } else if (type === 'success') {
+          toastIcon.setAttribute('data-lucide', 'check-circle-2');
+          toastIcon.className = 'w-4 h-4 text-emerald-400 shrink-0';
+        } else {
+          toastIcon.setAttribute('data-lucide', 'info');
+          toastIcon.className = 'w-4 h-4 theme-accent shrink-0';
+        }
+        lucide.createIcons();
+      }
+
+      toastEl.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      toastEl.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastEl.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toastEl.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+
+    let confirmCallback = null;
+    function openConfirm(title, desc, onOk) {
+      if (!confirmModal) return;
+      confirmTitle.textContent = title || 'Подтверждение';
+      confirmDesc.textContent = desc || 'Вы уверены?';
+      confirmCallback = onOk;
+      confirmModal.classList.remove('hidden');
+    }
+
+    confirmCancelBtn.addEventListener('click', () => {
+      confirmModal.classList.add('hidden');
+      confirmCallback = null;
+    });
+
+    confirmOkBtn.addEventListener('click', () => {
+      confirmModal.classList.add('hidden');
+      if (typeof confirmCallback === 'function') {
+        confirmCallback();
+      }
+      confirmCallback = null;
+    });
+
+    /* =========================================================================
+       РЕНДЕР ЧАТА С ПОДДЕРЖКОЙ СВАЙПОВ И ИНЛАЙН-РЕДАКТИРОВАНИЯ
+       ========================================================================= */
+    function renderChat() {
+      if (state.messages.length === 0) {
+        chatMessagesEl.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-500">
+            <div class="w-14 h-14 rounded-2xl theme-bg-card theme-border border flex items-center justify-center mb-3.5 theme-accent shadow-inner">
+              <i data-lucide="feather" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-semibold text-slate-300 mb-1">Сцена готова к началу</h3>
+            <p class="text-xs max-w-sm text-slate-400 mb-4">
+              Настройте Лор мира, добавьте персонажей и отправьте первый пост от лица своего героя.
+            </p>
+            <div class="flex flex-wrap gap-2 justify-center text-xs">
+              <button onclick="openLoreModal()" class="px-3 py-1.5 rounded-lg theme-bg-card theme-border border hover:text-white transition flex items-center gap-1.5">
+                <i data-lucide="globe-2" class="w-3.5 h-3.5 text-violet-400"></i> Задать Лор мира
+              </button>
+              <button onclick="openNpcModal()" class="px-3 py-1.5 rounded-lg theme-bg-card theme-border border hover:text-white transition flex items-center gap-1.5">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5 text-emerald-400"></i> Добавить NPC
+              </button>
+            </div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let html = '';
+      state.messages.forEach(msg => {
+        const isPlayer = msg.sender === 'player';
+        const isOoc = msg.type === 'ooc';
+        const variants = msg.variants || [msg.text];
+        const activeIdx = msg.activeVariantIndex || 0;
+        const currentText = variants[activeIdx] || msg.text;
+        const totalVariants = variants.length;
+        const isEditingThis = state.editingMsgId === msg.id;
+
+        const borderStyle = isOoc 
+          ? 'border-dashed border-indigo-500/40 bg-indigo-950/20' 
+          : isPlayer 
+            ? 'theme-border theme-bg-card/70' 
+            : 'border-l-4 theme-accent-border theme-border border-y border-r theme-bg-card';
+
+        html += `
+          <div class="group relative rounded-xl p-4 transition-all duration-200 theme-border ${borderStyle}" data-msg-id="${msg.id}">
+            <!-- Шапка сообщения -->
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full ${isPlayer ? 'bg-emerald-400' : isOoc ? 'bg-indigo-400' : 'theme-accent-bg'}"></span>
+                <span class="text-xs font-semibold text-slate-200">${escapeHtml(msg.characterName || (isPlayer ? state.playerName : 'Мастер'))}</span>
+                ${isOoc ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 font-mono border border-indigo-800">OOC МИТ-ПАУЗА</span>' : ''}
+                <span class="text-[10px] text-slate-500">${msg.timestamp || ''}</span>
+              </div>
+
+              <!-- Тулбар сообщения -->
+              <div class="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
+                ${!isPlayer ? `
+                  <!-- Свайпы вариантов ответа -->
+                  ${totalVariants > 1 ? `
+                    <div class="flex items-center gap-1 mr-2 px-1.5 py-0.5 rounded theme-bg-base theme-border border text-[10px] text-slate-300">
+                      <button onclick="handleSwipeVariant('${msg.id}', -1)" class="hover:text-white px-0.5" title="Предыдущий вариант">‹</button>
+                      <span>${activeIdx + 1}/${totalVariants}</span>
+                      <button onclick="handleSwipeVariant('${msg.id}', 1)" class="hover:text-white px-0.5" title="Следующий вариант">›</button>
+                    </div>
+                  ` : ''}
+
+                  <!-- Кнопка 3-режима перегенерации -->
+                  <button onclick="openRerollModal('${msg.id}')" class="p-1 text-slate-400 hover:text-white rounded hover:bg-white/5 transition" title="Перегенерировать (3 режима)">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                  </button>
+                ` : ''}
+
+                <!-- Редактировать инлайн -->
+                <button onclick="toggleInlineEdit('${msg.id}')" class="p-1 text-slate-400 hover:text-white rounded hover:bg-white/5 transition" title="Редактировать текст">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+
+                <!-- Копировать -->
+                <button onclick="copyMessageText('${msg.id}')" class="p-1 text-slate-400 hover:text-white rounded hover:bg-white/5 transition" title="Скопировать">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+
+                <!-- Удалить -->
+                <button onclick="deleteMessage('${msg.id}')" class="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-white/5 transition" title="Удалить ход">
+                  <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Режиссерский P.S. (если был) -->
+            ${msg.directorNote ? `
+              <div class="mb-2.5 px-3 py-1.5 rounded-lg bg-amber-950/30 border border-amber-900/40 text-[11px] text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span><strong>Режиссерский P.S.:</strong> ${escapeHtml(msg.directorNote)}</span>
+              </div>
+            ` : ''}
+
+            <!-- Текст сообщения или форма редактирования -->
+            ${isEditingThis ? `
+              <div class="space-y-2 mt-2">
+                <textarea id="edit-msg-input-${msg.id}" class="w-full theme-bg-base theme-border border rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-violet-500 leading-relaxed font-serif" rows="6">${escapeHtml(currentText)}</textarea>
+                <div class="flex justify-end gap-1.5">
+                  <button onclick="cancelInlineEdit()" class="px-2.5 py-1 text-xs theme-bg-base hover:bg-white/5 rounded text-slate-400">Отмена</button>
+                  <button onclick="saveInlineEdit('${msg.id}')" class="px-3 py-1 text-xs theme-accent-bg text-white rounded font-medium">Сохранить</button>
+                </div>
+              </div>
+            ` : `
+              <div class="story-prose text-slate-200 leading-relaxed select-text cursor-pointer" ondblclick="toggleInlineEdit('${msg.id}')">
+                ${formatStoryText(currentText)}
+              </div>
+            `}
+          </div>
+        `;
+      });
+
+      chatMessagesEl.innerHTML = html;
+      lucide.createIcons();
+      scrollChatToBottom();
+    }
+
+    /* =========================================================================
+       СВАЙПЫ ВАРИАНТОВ И ИНЛАЙН РЕДАКТИРОВАНИЕ
+       ========================================================================= */
+    window.handleSwipeVariant = function(msgId, direction) {
+      const msg = state.messages.find(m => m.id === msgId);
+      if (!msg || !msg.variants || msg.variants.length <= 1) return;
+
+      let nextIdx = (msg.activeVariantIndex || 0) + direction;
+      if (nextIdx < 0) nextIdx = msg.variants.length - 1;
+      if (nextIdx >= msg.variants.length) nextIdx = 0;
+
+      msg.activeVariantIndex = nextIdx;
+      msg.text = msg.variants[nextIdx];
+      saveState();
+      renderChat();
+    };
+
+    window.toggleInlineEdit = function(msgId) {
+      state.editingMsgId = state.editingMsgId === msgId ? null : msgId;
+      renderChat();
+    };
+
+    window.cancelInlineEdit = function() {
+      state.editingMsgId = null;
+      renderChat();
+    };
+
+    window.saveInlineEdit = function(msgId) {
+      const input = document.getElementById(`edit-msg-input-${msgId}`);
+      if (!input) return;
+      const newText = input.value.trim();
+      if (!newText) {
+        showToast('Текст не может быть пустым', 'error');
+        return;
+      }
+      const msg = state.messages.find(m => m.id === msgId);
+      if (msg) {
+        msg.text = newText;
+        if (!msg.variants) msg.variants = [newText];
+        else msg.variants[msg.activeVariantIndex || 0] = newText;
+        state.editingMsgId = null;
+        saveState();
+        renderChat();
+        showToast('Пост обновлен', 'success');
+      }
+    };
+
+    window.openRerollModal = function(msgId) {
+      state.activeRerollMsgId = msgId;
+      rerollModal.classList.remove('hidden');
+    };
+
+    window.copyMessageText = function(msgId) {
+      const msg = state.messages.find(m => m.id === msgId);
+      if (msg) {
+        copyToClipboard(msg.text);
+      }
+    };
+
+    window.deleteMessage = function(msgId) {
+      openConfirm('Удалить этот пост?', 'Ход будет удален из текущей истории чата.', () => {
+        state.messages = state.messages.filter(m => m.id !== msgId);
+        saveState();
+        renderChat();
+        showToast('Пост удален');
+      });
+    };
+
+    function copyToClipboard(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Текст скопирован в буфер обмена', 'success');
+      } catch (err) {
+        showToast('Не удалось скопировать текст', 'error');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function formatStoryText(text) {
+      if (!text) return '';
+      return text.split('\n\n').map(p => {
+        const clean = p.trim();
+        if (!clean) return '';
+        return `<p>${escapeHtml(clean).replace(/\n/g, '<br>')}</p>`;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /* =========================================================================
+       СЦЕНА, ОКРУЖЕНИЕ И ИНВЕНТАРЬ В КАДРЕ
+       ========================================================================= */
+    function updateQuickSceneBadge() {
+      const parts = [];
+      if (state.scene.location) parts.push(state.scene.location);
+      if (state.scene.time) parts.push(state.scene.time);
+
+      if (parts.length > 0) {
+        quickSceneInfo.textContent = `📍 ${parts.join(' • ')}`;
+        quickSceneInfo.classList.remove('text-slate-500');
+        quickSceneInfo.classList.add('text-slate-200');
+      } else {
+        quickSceneInfo.textContent = '📍 Локация не задана';
+        quickSceneInfo.classList.remove('text-slate-200');
+        quickSceneInfo.classList.add('text-slate-500');
+      }
+      inventoryBadgeCount.textContent = `Инвентарь (${state.inventory.length})`;
+    }
+
+    function renderInventory() {
+      inventoryTagsContainer.innerHTML = '';
+      if (!state.inventory || state.inventory.length === 0) {
+        inventoryTagsContainer.innerHTML = '<span class="text-[11px] text-slate-500 italic">В кадре нет предметов</span>';
+      } else {
+        state.inventory.forEach((item, index) => {
+          const tag = document.createElement('span');
+          tag.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] theme-bg-card theme-border border text-slate-200';
+          tag.innerHTML = `<span>📦 ${escapeHtml(item)}</span><button class="text-slate-400 hover:text-rose-400 p-0.5 ml-0.5 font-bold" title="Убрать из сцены">×</button>`;
+          tag.querySelector('button').addEventListener('click', () => {
+            state.inventory.splice(index, 1);
+            saveState();
+            renderInventory();
+            updateQuickSceneBadge();
+          });
+          inventoryTagsContainer.appendChild(tag);
+        });
+      }
+      inventoryBadgeCount.textContent = `Инвентарь (${state.inventory.length})`;
+    }
+
+    function handleAddItem() {
+      const val = newItemInput.value.trim();
+      if (!val) return;
+      state.inventory.push(val);
+      newItemInput.value = '';
+      saveState();
+      renderInventory();
+      updateQuickSceneBadge();
+      showToast(`Предмет добавлен: ${val}`);
+    }
+
+    addItemBtn.addEventListener('click', handleAddItem);
+    newItemInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleAddItem();
+      }
+    });
+
+    sceneLocationInput.addEventListener('input', (e) => {
+      state.scene.location = e.target.value.trim();
+      updateQuickSceneBadge();
+      saveState();
+    });
+    sceneTimeInput.addEventListener('input', (e) => {
+      state.scene.time = e.target.value.trim();
+      updateQuickSceneBadge();
+      saveState();
+    });
+    sceneWeatherInput.addEventListener('input', (e) => {
+      state.scene.weather = e.target.value.trim();
+      saveState();
+    });
+    quickSceneInfo.addEventListener('click', () => {
+      sceneLocationInput.focus();
+    });
+    toggleSceneBtn.addEventListener('click', () => {
+      sceneBar.classList.toggle('hidden');
+    });
+    toggleInventoryDetailsBtn.addEventListener('click', () => {
+      inventoryDropdown.classList.toggle('hidden');
+    });
+
+    /* =========================================================================
+       БАЗА NPC И LOREBOOK
+       ========================================================================= */
+    const npcEditId = document.getElementById('npc-edit-id');
+    const npcEmoji = document.getElementById('npc-emoji');
+    const npcName = document.getElementById('npc-name');
+    const npcRole = document.getElementById('npc-role');
+    const npcPersonality = document.getElementById('npc-personality');
+    const npcSpeech = document.getElementById('npc-speech');
+    const npcInScene = document.getElementById('npc-in-scene');
+    const npcModalTitle = document.getElementById('npc-modal-title');
+
+    function renderNpcList() {
+      npcListEl.innerHTML = '';
+      const activeCount = state.npcs.filter(n => n.inScene).length;
+      activeNpcsCountEl.textContent = `В кадре: ${activeCount} NPC`;
+
+      if (state.npcs.length === 0) {
+        npcListEl.innerHTML = `
+          <div class="text-center py-8 px-3 space-y-2">
+            <div class="w-10 h-10 rounded-full theme-bg-card flex items-center justify-center mx-auto text-slate-500">
+              <i data-lucide="user-x" class="w-5 h-5"></i>
+            </div>
+            <p class="text-xs text-slate-400">Список NPC пуст</p>
+            <p class="text-[10px] text-slate-500">Создайте первого персонажа, чтобы ИИ оживил его в диалоге.</p>
+            <button id="empty-add-npc-btn" class="mt-2 px-3 py-1.5 rounded-lg theme-accent-bg text-white text-xs font-medium inline-flex items-center gap-1 shadow">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Добавить NPC
+            </button>
+          </div>
+        `;
+        const emptyBtn = document.getElementById('empty-add-npc-btn');
+        if (emptyBtn) emptyBtn.onclick = openAddNpcModal;
+        lucide.createIcons();
+        return;
+      }
+
+      state.npcs.forEach((npc) => {
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl theme-border border transition ${npc.inScene ? 'theme-bg-card/90 ring-1 ring-violet-500/40' : 'theme-bg-card/40 opacity-70 hover:opacity-100'}`;
+        
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-lg leading-none">${escapeHtml(npc.emoji || '👤')}</span>
+              <div class="min-w-0">
+                <h4 class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(npc.name)}</h4>
+                <span class="text-[10px] text-slate-400 block truncate">${escapeHtml(npc.role || 'Персонаж')}</span>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0" title="В кадре (активен в сцене)">
+              <input type="checkbox" class="sr-only peer npc-scene-toggle" data-id="${npc.id}" ${npc.inScene ? 'checked' : ''}>
+              <div class="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-violet-600"></div>
+            </label>
+          </div>
+          ${npc.personality ? `<p class="text-[10px] text-slate-400 line-clamp-2 mb-1 italic">${escapeHtml(npc.personality)}</p>` : ''}
+          <div class="flex items-center justify-between pt-1 text-[10px] theme-border border-t border-white/5 mt-1">
+            <span class="${npc.inScene ? 'text-violet-400 font-medium' : 'text-slate-500'}">${npc.inScene ? '● В кадре' : '○ Вне сцены'}</span>
+            <div class="flex items-center gap-1">
+              <button class="p-1 text-slate-400 hover:text-white edit-npc-btn" data-id="${npc.id}" title="Редактировать">
+                <i data-lucide="edit-3" class="w-3 h-3"></i>
+              </button>
+              <button class="p-1 text-slate-400 hover:text-rose-400 delete-npc-btn" data-id="${npc.id}" title="Удалить">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.npc-scene-toggle').addEventListener('change', (e) => {
+          npc.inScene = e.target.checked;
+          saveState();
+          renderNpcList();
+        });
+
+        card.querySelector('.edit-npc-btn').addEventListener('click', () => {
+          openEditNpcModal(npc);
+        });
+
+        card.querySelector('.delete-npc-btn').addEventListener('click', () => {
+          openConfirm(`Удалить ${npc.name}?`, 'Персонаж будет безвозвратно удален из базы Lorebook.', () => {
+            state.npcs = state.npcs.filter(n => n.id !== npc.id);
+            saveState();
+            renderNpcList();
+            showToast(`Персонаж ${npc.name} удален`);
+          });
+        });
+
+        npcListEl.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function openAddNpcModal() {
+      npcEditId.value = '';
+      npcModalTitle.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4 theme-accent"></i> Новый персонаж (NPC)';
+      npcEmoji.value = '👤';
+      npcName.value = '';
+      npcRole.value = '';
+      npcPersonality.value = '';
+      npcSpeech.value = '';
+      npcInScene.checked = true;
+      npcModal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openEditNpcModal(npc) {
+      npcEditId.value = npc.id;
+      npcModalTitle.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4 theme-accent"></i> Редактирование NPC';
+      npcEmoji.value = npc.emoji || '👤';
+      npcName.value = npc.name || '';
+      npcRole.value = npc.role || '';
+      npcPersonality.value = npc.personality || '';
+      npcSpeech.value = npc.speech || '';
+      npcInScene.checked = Boolean(npc.inScene);
+      npcModal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    addNpcBtn.addEventListener('click', openAddNpcModal);
+    closeNpcModal.addEventListener('click', () => npcModal.classList.add('hidden'));
+    cancelNpcModal.addEventListener('click', () => npcModal.classList.add('hidden'));
+
+    npcForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = npcEditId.value;
+      const data = {
+        emoji: npcEmoji.value.trim() || '👤',
+        name: npcName.value.trim() || 'Персонаж',
+        role: npcRole.value.trim(),
+        personality: npcPersonality.value.trim(),
+        speech: npcSpeech.value.trim(),
+        inScene: npcInScene.checked
+      };
+
+      if (id) {
+        const idx = state.npcs.findIndex(n => n.id === id);
+        if (idx !== -1) {
+          state.npcs[idx] = { ...state.npcs[idx], ...data };
+          showToast(`Персонаж ${data.name} обновлен`, 'success');
+        }
+      } else {
+        data.id = 'npc-' + Date.now();
+        state.npcs.push(data);
+        showToast(`Персонаж ${data.name} создан!`, 'success');
+      }
+
+      saveState();
+      renderNpcList();
+      npcModal.classList.add('hidden');
+    });
+
+    // Экспорт модалок в глобальную область для быстрого старта со стартового экрана
+    window.openNpcModal = openAddNpcModal;
+    window.openLoreModal = openLoreModal;
+
+    /* =========================================================================
+       МЕТРИКИ, РЕЖИССЕРСКИЙ P.S., OOC И ДЗЕН-РЕЖИМ
+       ========================================================================= */
+    function updateTextMetrics() {
+      const text = messageInput.value;
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const readMin = words > 0 ? Math.ceil(words / 130) : 0;
+
+      charCounter.textContent = `Знаков: ${chars}`;
+      wordCounter.textContent = `Слов: ${words}`;
+      readingTimeCounter.textContent = `Чтение: ${readMin} мин`;
+    }
+
+    messageInput.addEventListener('input', updateTextMetrics);
+
+    function checkPsDot() {
+      if (directorInput.value.trim().length > 0) {
+        psActiveDot.classList.remove('hidden');
+      } else {
+        psActiveDot.classList.add('hidden');
+      }
+    }
+
+    directorInput.addEventListener('input', checkPsDot);
+
+    toggleDirectorBtn.addEventListener('click', () => {
+      directorBox.classList.toggle('hidden');
+    });
+
+    clearPsBtn.addEventListener('click', () => {
+      directorInput.value = '';
+      checkPsDot();
+    });
+
+    document.querySelectorAll('.quick-ps-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tag = chip.getAttribute('data-text');
+        if (directorBox.classList.contains('hidden')) {
+          directorBox.classList.remove('hidden');
+        }
+        if (directorInput.value) {
+          directorInput.value += ` ${tag}`;
+        } else {
+          directorInput.value = tag;
+        }
+        checkPsDot();
+      });
+    });
+
+    rollRandomEventBtn.addEventListener('click', () => {
+      const evt = RANDOM_ATMOSPHERIC_EVENTS[Math.floor(Math.random() * RANDOM_ATMOSPHERIC_EVENTS.length)];
+      if (directorBox.classList.contains('hidden')) {
+        directorBox.classList.remove('hidden');
+      }
+      directorInput.value = directorInput.value ? `${directorInput.value} [Событие: ${evt}]` : `[Событие: ${evt}]`;
+      checkPsDot();
+      showToast('Случайный триггер добавлен в P.S.!', 'info');
+    });
+
+    modeIcBtn.addEventListener('click', () => {
+      state.composerMode = 'ic';
+      modeIcBtn.className = 'px-3 py-1 rounded-md font-medium theme-accent-bg text-white shadow transition flex items-center gap-1.5';
+      modeOocBtn.className = 'px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+      messageInput.placeholder = 'Опишите действия, прямую речь или мысли вашего персонажа... (Ctrl + Enter для отправки)';
+    });
+
+    modeOocBtn.addEventListener('click', () => {
+      state.composerMode = 'ooc';
+      modeOocBtn.className = 'px-3 py-1 rounded-md font-medium bg-amber-600 text-white shadow transition flex items-center gap-1.5';
+      modeIcBtn.className = 'px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5';
+      messageInput.placeholder = 'Режим OOC (вне роли): обсудите сюжет, задайте вопрос или предложите идею Мастеру...';
+    });
+
+    toggleScratchpadBtn.addEventListener('click', () => {
+      scratchpadDrawer.classList.toggle('hidden');
+      leftSidebar.classList.add('-translate-x-full');
+      rightSidebar.classList.add('translate-x-full');
+    });
+
+    closeScratchpadBtn.addEventListener('click', () => {
+      scratchpadDrawer.classList.add('hidden');
+    });
+
+    scratchpadInput.addEventListener('input', () => {
+      state.scratchpad = scratchpadInput.value;
+      saveState();
+    });
+
+    zenEnterBtn.addEventListener('click', () => {
+      document.body.classList.add('zen-mode');
+      showToast('Режим Дзен активирован. Нажмите Esc для выхода', 'info');
+    });
+
+    zenExitBtn.addEventListener('click', () => {
+      document.body.classList.remove('zen-mode');
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.body.classList.contains('zen-mode')) {
+        document.body.classList.remove('zen-mode');
+      }
+    });
+
+    /* =========================================================================
+       ОТПРАВКА ХОДА И ВЗАИМОДЕЙСТВИЕ С GEMINI
+       ========================================================================= */
+    async function handleSendMessage() {
+      if (state.isGenerating) return;
+
+      const rawText = messageInput.value.trim();
+      const rawPs = directorInput.value.trim();
+
+      if (!rawText) {
+        showToast('Напишите текст вашего хода', 'error');
+        return;
+      }
+
+      state.playerName = playerNameInput.value.trim() || 'Герой';
+      saveState();
+
+      const userMessage = {
+        id: 'msg-' + Date.now(),
+        sender: 'player',
+        characterName: state.composerMode === 'ooc' ? `${state.playerName} (OOC)` : state.playerName,
+        type: state.composerMode === 'ooc' ? 'ooc' : 'player',
+        text: rawText,
+        directorNote: rawPs || null,
+        timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      };
+
+      state.messages.push(userMessage);
+      renderChat();
+
+      // Очистка полей
+      messageInput.value = '';
+      directorInput.value = '';
+      checkPsDot();
+      updateTextMetrics();
+
+      await executeAiTurn();
+    }
+
+    async function executeAiTurn(customPromptModifier = '', targetMsgIdToReplace = null) {
+      state.isGenerating = true;
+      aiLoadingEl.classList.remove('hidden');
+      scrollChatToBottom();
+
+      try {
+        if (!state.apiKey || state.apiKey.trim().length < 5) {
+          throw new Error('API ключ Gemini не указан! Перейдите в настройки справа и введите бесплатный ключ от Google AI Studio.');
+        }
+
+        const compiledSystemInstruction = buildCompiledSystemPrompt(customPromptModifier);
+        const recentHistory = state.messages.slice(-state.contextDepth);
+
+        // Формирование структуры contents
+        const contents = [];
+        recentHistory.forEach(msg => {
+          // Пропускаем цель реролла, если она передана для замены
+          if (targetMsgIdToReplace && msg.id === targetMsgIdToReplace) return;
+
+          let role = (msg.type === 'player' || msg.type === 'ooc') ? 'user' : 'model';
+          let text = '';
+
+          if (msg.type === 'ooc') {
+            text += `[ВНЕ РОЛЕВОЙ / OOC ВОПРОС ОТ ${msg.characterName}]:\n`;
+          }
+
+          text += msg.text;
+
+          if (msg.directorNote) {
+            text += `\n\n[РЕЖИССЕРСКИЙ P.S.: ${msg.directorNote}]`;
+          }
+
+          if (contents.length > 0 && contents[contents.length - 1].role === role) {
+            contents[contents.length - 1].parts[0].text += `\n\n${text}`;
+          } else {
+            contents.push({ role, parts: [{ text }] });
+          }
+        });
+
+        // Если последний ход был системной модификацией для реролла
+        if (customPromptModifier && contents.length > 0) {
+          contents[contents.length - 1].parts[0].text += `\n\n[УКАЗАНИЕ К ЭТОМУ ВАРИАНТУ: ${customPromptModifier}]`;
+        }
+
+        // Взрослая ролевая: снятие цензурных рамок (BLOCK_NONE)
+        const payload = {
+          contents: contents,
+          systemInstruction: {
+            parts: [{ text: compiledSystemInstruction }]
+          },
+          generationConfig: {
+            temperature: state.temperature,
+            topP: 0.95,
+            maxOutputTokens: 2048
+          },
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        };
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent?key=${state.apiKey}`;
+
+        let response = null;
+        let retries = 0;
+        const maxRetries = 3;
+
+        while (retries < maxRetries) {
+          try {
+            response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (response.status === 429) {
+              retries++;
+              await new Promise(r => setTimeout(r, 1500 * retries));
+              continue;
+            }
+            break;
+          } catch (e) {
+            retries++;
+            if (retries >= maxRetries) throw e;
+            await new Promise(r => setTimeout(r, 1000 * retries));
+          }
+        }
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Ошибка API: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!candidateText) {
+          throw new Error('Пустой ответ от модели. Попробуйте еще раз.');
+        }
+
+        const cleanText = candidateText.trim();
+
+        // Если это реролл существующего поста — добавляем в variants со свайпом!
+        if (targetMsgIdToReplace) {
+          const targetMsg = state.messages.find(m => m.id === targetMsgIdToReplace);
+          if (targetMsg) {
+            if (!targetMsg.variants) targetMsg.variants = [targetMsg.text];
+            targetMsg.variants.push(cleanText);
+            targetMsg.activeVariantIndex = targetMsg.variants.length - 1;
+            targetMsg.text = cleanText;
+            saveState();
+            renderChat();
+            showToast('Новый вариант сгенерирован и добавлен в свайпы!', 'success');
+            return;
+          }
+        }
+
+        // Обычный новый ход ИИ
+        const aiMessage = {
+          id: 'msg-' + Date.now(),
+          sender: 'ai',
+          characterName: state.composerMode === 'ooc' ? 'Соавтор (OOC)' : 'Мир и NPC',
+          type: state.composerMode === 'ooc' ? 'ooc' : 'ai',
+          text: cleanText,
+          variants: [cleanText],
+          activeVariantIndex: 0,
+          timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        };
+
+        state.messages.push(aiMessage);
+        saveState();
+        renderChat();
+
+      } catch (err) {
+        console.error('RP Studio API Error:', err);
+        showToast(err.message, 'error');
+      } finally {
+        state.isGenerating = false;
+        aiLoadingEl.classList.add('hidden');
+      }
+    }
+
+    /* =========================================================================
+       3 КНОПКИ РЕРОЛЛА
+       ========================================================================= */
+    closeRerollModalBtn.addEventListener('click', () => {
+      rerollModal.classList.add('hidden');
+    });
+
+    rerollNormalBtn.addEventListener('click', async () => {
+      const id = state.activeRerollMsgId;
+      rerollModal.classList.add('hidden');
+      if (id) {
+        await executeAiTurn('', id);
+      }
+    });
+
+    rerollMoreBtn.addEventListener('click', async () => {
+      const id = state.activeRerollMsgId;
+      rerollModal.classList.add('hidden');
+      if (id) {
+        await executeAiTurn('НАПИШИ РАЗВЕРНУТЫЙ, БОЛЬШОЙ ПОСТ: добавь глубокие описания невербальных реакций NPC, бытовые детали, запахи, взгляды и окружение.', id);
+      }
+    });
+
+    rerollLessBtn.addEventListener('click', async () => {
+      const id = state.activeRerollMsgId;
+      rerollModal.classList.add('hidden');
+      if (id) {
+        await executeAiTurn('НАПИШИ КОРОТКИЙ И ЕМКИЙ ПОСТ: убери пространные размышления, оставь только четкие кинематографичные действия, острую фразу и сжатый ритм.', id);
+      }
+    });
+
+    /* =========================================================================
+       МОДАЛЬНОЕ ОКНО ТЕМ И НАСТРОЙКИ ОФОРМЛЕНИЯ
+       ========================================================================= */
+    openThemeModalBtn.addEventListener('click', () => {
+      themeModal.classList.remove('hidden');
+    });
+
+    closeThemeModalBtn.addEventListener('click', () => {
+      themeModal.classList.add('hidden');
+    });
+
+    document.querySelectorAll('.theme-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-theme');
+        if (THEME_PRESETS[key]) {
+          state.theme = { ...THEME_PRESETS[key] };
+          state.currentThemePreset = key;
+          applyTheme();
+          saveState();
+          showToast(`Тема активирована: ${key}`);
+        }
+      });
+    });
+
+    customBgColor.addEventListener('input', (e) => {
+      customBgHex.value = e.target.value;
+      state.theme.bgBase = e.target.value;
+      // автогенерация панелей
+      state.theme.bgPanel = adjustColor(e.target.value, 10);
+      state.theme.bgCard = adjustColor(e.target.value, 20);
+      state.theme.bgBorder = adjustColor(e.target.value, 35);
+      applyTheme();
+    });
+
+    customAccentColor.addEventListener('input', (e) => {
+      customAccentHex.value = e.target.value;
+      state.theme.accent = e.target.value;
+      state.theme.accentHover = adjustColor(e.target.value, -15);
+      applyTheme();
+    });
+
+    fontFamilySelect.addEventListener('change', () => {
+      state.fontFamily = fontFamilySelect.value;
+      applyTheme();
+    });
+
+    fontSizeRange.addEventListener('input', () => {
+      state.fontSize = parseFloat(fontSizeRange.value);
+      fontSizeVal.textContent = `${state.fontSize}px`;
+      applyTheme();
+    });
+
+    lineHeightRange.addEventListener('input', () => {
+      state.lineHeight = parseFloat(lineHeightRange.value);
+      lineHeightVal.textContent = state.lineHeight;
+      applyTheme();
+    });
+
+    saveThemeModalBtn.addEventListener('click', () => {
+      saveState();
+      themeModal.classList.add('hidden');
+      showToast('Настройки оформления сохранены', 'success');
+    });
+
+    function adjustColor(hex, percent) {
+      let num = parseInt(hex.replace('#',''), 16),
+      amt = Math.round(2.55 * percent),
+      R = (num >> 16) + amt,
+      G = (num >> 8 & 0x00FF) + amt,
+      B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+    }
+
+    /* =========================================================================
+       ПАНЕЛИ И ГОРЯЧИЕ КЛАВИШИ
+       ========================================================================= */
+    toggleLeftBtn.addEventListener('click', () => {
+      leftSidebar.classList.toggle('-translate-x-full');
+      mobileBackdrop.classList.toggle('hidden');
+      rightSidebar.classList.add('translate-x-full');
+      scratchpadDrawer.classList.add('hidden');
+    });
+
+    toggleRightBtn.addEventListener('click', () => {
+      rightSidebar.classList.toggle('translate-x-full');
+      mobileBackdrop.classList.toggle('hidden');
+      leftSidebar.classList.add('-translate-x-full');
+      scratchpadDrawer.classList.add('hidden');
+    });
+
+    closeRightBtn.addEventListener('click', () => {
+      rightSidebar.classList.add('translate-x-full');
+      mobileBackdrop.classList.add('hidden');
+    });
+
+    mobileBackdrop.addEventListener('click', () => {
+      leftSidebar.classList.add('-translate-x-full');
+      rightSidebar.classList.add('translate-x-full');
+      scratchpadDrawer.classList.add('hidden');
+      mobileBackdrop.classList.add('hidden');
+    });
+
+    sendBtn.addEventListener('click', handleSendMessage);
+
+    messageInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    });
+
+    apiKeyInput.addEventListener('change', () => {
+      state.apiKey = apiKeyInput.value.trim();
+      saveState();
+      showToast('API ключ сохранен в браузере', 'success');
+    });
+
+    toggleKeyVisibility.addEventListener('click', () => {
+      const type = apiKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      apiKeyInput.setAttribute('type', type);
+      toggleKeyVisibility.innerHTML = type === 'password' ? '<i data-lucide="eye" class="w-3.5 h-3.5"></i>' : '<i data-lucide="eye-off" class="w-3.5 h-3.5"></i>';
+      lucide.createIcons();
+    });
+
+    modelSelect.addEventListener('change', () => {
+      state.model = modelSelect.value;
+      saveState();
+      showToast(`Модель переключена: ${state.model}`);
+    });
+
+    tempRange.addEventListener('input', () => {
+      state.temperature = parseFloat(tempRange.value);
+      tempVal.textContent = state.temperature;
+      saveState();
+    });
+
+    contextRange.addEventListener('input', () => {
+      state.contextDepth = parseInt(contextRange.value);
+      contextVal.textContent = `${state.contextDepth} постов`;
+      saveState();
+    });
+
+    playerNameInput.addEventListener('input', () => {
+      state.playerName = playerNameInput.value.trim() || 'Герой';
+      saveState();
+    });
+
+    playerBioInput.addEventListener('input', () => {
+      state.playerBio = playerBioInput.value.trim();
+      saveState();
+    });
+
+    systemPromptInput.addEventListener('input', () => {
+      state.systemPrompt = systemPromptInput.value;
+      saveState();
+    });
+
+    resetPromptBtn.addEventListener('click', () => {
+      openConfirm('Сброс правил', 'Восстановить эталонный кодекс без цензуры и с запретом отыгрыша за игрока?', () => {
+        state.systemPrompt = DEFAULT_SYSTEM_PROMPT;
+        systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
+        saveState();
+        showToast('Системные правила сброшены к эталону', 'info');
+      });
+    });
+
+    /* =========================================================================
+       ЭКСПОРТ И ИМПОРТ (MARKDOWN И ПОЛНЫЙ JSON)
+       ========================================================================= */
+    clearChatBtn.addEventListener('click', () => {
+      openConfirm('Очистить историю сессии?', 'Все посты будут удалены. Персонажи, инвентарь и настройки сохранятся.', () => {
+        state.messages = [];
+        saveState();
+        renderChat();
+        showToast('Чат полностью очищен');
+      });
+    });
+
+    exportMdBtn.addEventListener('click', () => {
+      if (state.messages.length === 0) {
+        showToast('В чате нет сообщений для экспорта', 'info');
+        return;
+      }
+
+      let md = `# Ролевая сессия: RP Studio Max\n`;
+      md += `*Экспорт: ${new Date().toLocaleString()}*\n`;
+      md += `*Персонаж игрока: ${state.playerName}*\n`;
+      if (state.worldLore && state.worldLore.fandom) md += `*Вселенная / Фандом: ${state.worldLore.fandom}*\n`;
+      if (state.worldLore && state.worldLore.premise) md += `*Завязка сюжета: ${state.worldLore.premise}*\n`;
+      if (state.scene.location) md += `*Локация: ${state.scene.location}*\n`;
+      md += `\n---\n\n`;
+
+      state.messages.forEach(m => {
+        const title = m.characterName || (m.type === 'player' ? state.playerName : 'Мастер');
+        const badge = m.type === 'ooc' ? ' [OOC]' : '';
+        md += `### ${title}${badge} (${m.timestamp || ''})\n\n`;
+        if (m.directorNote) {
+          md += `> **Режиссерский P.S.:** ${m.directorNote}\n\n`;
+        }
+        md += `${m.text}\n\n`;
+      });
+
+      downloadFile(md, `RP_Session_${Date.now()}.md`, 'text/markdown');
+      showToast('История экспортирована в Markdown', 'success');
+    });
+
+    backupSaveBtn.addEventListener('click', () => {
+      const dump = {
+        version: "2.0-max",
+        timestamp: new Date().toISOString(),
+        state: state
+      };
+      downloadFile(JSON.stringify(dump, null, 2), `RP_Studio_Max_Backup_${Date.now()}.json`, 'application/json');
+      showToast('Полный бэкап сохранен в JSON', 'success');
+    });
+
+    backupLoadInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (parsed && parsed.state) {
+            state = { ...state, ...parsed.state };
+            saveState();
+            initUI();
+            showToast('Сессия полностью восстановлена из JSON!', 'success');
+          } else {
+            throw new Error('Некорректная структура файла');
+          }
+        } catch (err) {
+          showToast(`Ошибка импорта: ${err.message}`, 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    function downloadFile(content, fileName, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    /* =========================================================================
+       СТАРТ ПРИЛОЖЕНИЯ
+       ========================================================================= */
+    window.onload = function() {
+      initUI();
+    };
+  </script>
+</body>
+</html>
+```
